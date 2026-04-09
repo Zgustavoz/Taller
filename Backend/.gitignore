@@ -1,0 +1,46 @@
+# Variables de entorno
+.env
+*.env
+!.env.example
+
+# Entorno virtual
+.venv/
+venv/
+env/
+
+# Archivos de Python compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Logs
+*.log
+
+# Base de datos SQLite (si usaras local)
+*.sqlite3
+*.db
+
+# Carpeta de migraciones de Alembic (si las generas)
+migrations/
+
+# IDEs y editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Dependencias instaladas
+pip-wheel-metadata/
+*.egg-info/
+dist/
+build/
+
+# Cachés
+*.pytest_cache/
+
+#extras
+.http

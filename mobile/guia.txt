@@ -1,0 +1,114 @@
+| Atajo    | Qué crea         |
+| -------- | ---------------- |
+| `stless` | StatelessWidget  |
+| `stful`  | StatefulWidget   |
+| `stanim` | Animation widget |
+| `mateapp`| App basica       |
+
+
+# COMANDOS BASICOS DE FLUTTER
+flutter doctor                      => Verifica que Flutter esté correctamente instalado
+flutter create nombre_proyecto      => Crea un nuevo proyecto Flutter
+flutter run                         => Ejecuta la aplicación en el dispositivo conectado
+flutter clean                       => Limpia archivos temporales del proyecto
+flutter pub get                     => Descarga las dependencias del proyecto
+flutter pub upgrade                 => Actualiza dependencias del proyecto
+flutter build apk                   => Genera archivo APK para Android
+flutter build apk --release         => Genera APK optimizado para producción
+flutter build appbundle             => Genera archivo AAB para Play Store
+flutter --version                   => Muestra la versión actual de Flutter
+flutter upgrade                     => Actualiza Flutter a la última versión
+
+
+#rutas con go_router
+context.push("/name")
+
+# crear un menu lateral
+drawer: NavigationDrawer(children: []),
+
+
+
+    #----para Gustavo ----#
+#firebase en la pc
+npm install -g firebase-tools
+dart pub global activate flutterfire_cli
+
+#hacer las configuraciones automatica
+flutterfire configure
+
+#intalar 
+flutter pub add go_router
+flutter pub add flutter_dotenv
+flutter pub add flutter_bloc 
+flutter pub add equatable
+flutter pub add firebase_messaging
+flutter pub add firebase_core
+flutter pub add permission_handler
+flutter pub add dio => para las peticiones http
+flutter pub add shared_preferences => guardar datos del usuario
+
+flutter pub add provider #basura
+flutter pub add bloc
+flutter pub add flutter_riverpod 
+
+
+
+
+
+                #------- descripcion de los archivos -----------#
+
+
+# main.dart =>  Inicializa rutas, tema y configuración general.
+
+# core => Contiene configuraciones globales reutilizables en toda la app.
+
+    # config => Configuración principal del proyecto.
+
+        # router => Definición de rutas usando GoRouter. Aquí se centraliza la navegación entre pantallas.
+
+        # theme => Configuración del tema global (colores, tipografía, modo oscuro, estilos).
+
+    # network => Configuración para conectarse al backend (API REST).
+                Aquí va el cliente HTTP (Dio), interceptores JWT y manejo de cookies.
+
+    # common => Elementos reutilizables en toda la app.
+
+        # widgets => Widgets reutilizables como botones, loaders, dialogs, inputs personalizados.
+
+
+
+# features => Contiene los módulos funcionales de la aplicación.
+              Cada carpeta representa una funcionalidad independiente.
+
+    # auth => Funcionalidad relacionada con autenticación.
+
+        # data => Manejo de datos externos (backend o servicios externos).
+
+            # datasource => Archivos que consumen endpoints del backend o servicios externos.
+                            Ej: login, registro, Google Auth.
+
+            # models => Modelos que representan datos recibidos del backend (JSON).
+
+            # repositories => Implementación que conecta datasource con la UI.
+
+        # presentation => Parte visual y lógica de estado.
+
+            # blocs => Manejo del estado usando Bloc o Cubit.
+
+            # screens => Pantallas relacionadas a autenticación.
+                         Ej: login, register.
+
+                    
+                # ejemplo visual
+
+                    UI (pantalla)
+                        ↓
+                    Bloc / Cubit
+                        ↓
+                    Repository
+                        ↓
+                    Datasource (API)
+                        ↓
+                    Backend
+
+# pubspec.yaml => Archivo donde se definen dependencias, assets y configuración del proyecto Flutter.
