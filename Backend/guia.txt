@@ -1,0 +1,30 @@
+| Carpeta / Archivo        | Para qué sirve                                         |
+| ------------------------ | ------------------------------------------------------ |
+| `main.py`                | Archivo principal que ejecuta FastAPI.                 |
+| `core/`                  | Configuración de seguridad, JWT, constantes, etc.      |
+| `models/`                | Definición de modelos (ORM, Pydantic).                 |
+| `schemas/`               | Esquemas Pydantic para request/response.               |
+| `routes/`                | Endpoints de tu API.                                   |
+| `services/`              | Lógica de negocio y funciones auxiliares.              |
+| `config.py` o `.env`     | Variables de configuración (SECRET_KEY, DB_URL, etc.). |
+
+#crear entorno virtual
+python -m venv .venv
+
+#activar entorno virtual
+.venv\Scripts\activate
+
+#crear o actualizar archivo de dependencias
+pip freeze > requirements.txt
+
+#instalar dependencias
+pip install -r requirements.txt
+
+#generar SECRET_KEY
+python -c "import secrets; print(secrets.token_hex(32))"
+
+#arrancar la aplicacion en modo desarrolo
+uvicorn app.main:app --reload
+
+#para probar la aplicacion mobil 
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
