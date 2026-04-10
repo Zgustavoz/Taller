@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 from app.core.db import engine, Base
 from app.core.config import settings
 from app.api.router import api_router
@@ -14,6 +15,8 @@ async def lifespan(app: FastAPI):
     # Crear tablas al arrancar (solo para desarrollo)
     # En producción usar Alembic
     async with engine.begin() as conn:
+        # Requerido para la columna GEOMETRY(Point, 4326) de talleres.
+        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
         await conn.run_sync(Base.metadata.create_all)
     yield
     # Cerrar conexiones al apagar
@@ -30,7 +33,11 @@ app = FastAPI(
 # ─── CORS ────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:4200"],
+    allow_origins=[
+        settings.FRONTEND_URL,
+        "http://localhost:4200",
+        "http://127.0.0.1:4200",
+    ],
     allow_credentials=True,   # necesario para cookies
     allow_methods=["*"],
     allow_headers=["*"],

@@ -99,4 +99,8 @@ async def me(
     from app.services.gestion_usuario.usuario_service import UsuarioService
     service = UsuarioService(db)
     usuario_id = int(current_user.get("sub"))
-    return await service.obtener_por_id(usuario_id)
+    usuario = await service.obtener_por_id(usuario_id)
+    return {
+        "mensaje": "Usuario autenticado",
+        "usuario": usuario,
+    }
