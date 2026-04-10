@@ -9,3 +9,4 @@ from app.schemas.auth_schema import (
     RecuperarPasswordRequest, ResetPasswordRequest,
     TokenResponse, GoogleCallbackRequest
 )
+from app.schemas.taller_schema import TallerCreate, TallerUpdate, TallerResponse

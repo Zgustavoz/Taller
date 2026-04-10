@@ -1,3 +1,4 @@
 from app.repositories.gestion_usuario.rol.rol_repository import RolRepository
 from app.repositories.gestion_usuario.usuario.usuario_repository import UsuarioRepository
 from app.repositories.gestion_usuario.permisos_repository import PermisosRepository
+from app.repositories.gestion_usuario.taller.taller_repository import TallerRepository
