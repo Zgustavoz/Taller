@@ -29,3 +29,8 @@ class TokenResponse(BaseModel):
 class GoogleCallbackRequest(BaseModel):
     code: str
     state: Optional[str] = None
+
+
+class TallerLoginRequest(BaseModel):
+    correo: EmailStr
+    password: str

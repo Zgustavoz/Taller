@@ -7,6 +7,6 @@ from app.schemas.permisos_schema import PermisosCreate, PermisosUpdate, Permisos
 from app.schemas.auth_schema import (
     LoginRequest, LoginResponse,
     RecuperarPasswordRequest, ResetPasswordRequest,
-    TokenResponse, GoogleCallbackRequest
+    TokenResponse, GoogleCallbackRequest, TallerLoginRequest
 )
 from app.schemas.taller_schema import TallerCreate, TallerUpdate, TallerResponse

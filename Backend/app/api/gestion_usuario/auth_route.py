@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, Request, Response, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
-from app.core.security import get_current_user_from_cookie
+from app.core.security import get_current_user_from_cookie, get_current_taller_from_cookie
 from app.services.gestion_usuario.auth_service import AuthService
+from app.services.gestion_usuario.taller_auth_service import TallerAuthService
 from app.schemas.auth_schema import (
-    LoginRequest, RecuperarPasswordRequest, ResetPasswordRequest
+    LoginRequest, RecuperarPasswordRequest, ResetPasswordRequest, TallerLoginRequest
 )
+from app.schemas.taller_schema import TallerCreate
 
 
 router = APIRouter(prefix="/auth", tags=["Autenticación"])
@@ -104,3 +106,65 @@ async def me(
         "mensaje": "Usuario autenticado",
         "usuario": usuario,
     }
+
+
+# ─── Auth Taller: Register ──────────────────────────────────────
+@router.post("/taller/register")
+async def register_taller(
+    data: TallerCreate,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    service = TallerAuthService(db)
+    return await service.register(data, response)
+
+
+# ─── Auth Taller: Login ─────────────────────────────────────────
+@router.post("/taller/login")
+async def login_taller(
+    data: TallerLoginRequest,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    service = TallerAuthService(db)
+    return await service.login(data, response)
+
+
+# ─── Auth Taller: Me ────────────────────────────────────────────
+@router.get("/taller/me")
+async def me_taller(
+    current_taller: dict = Depends(get_current_taller_from_cookie),
+    db: AsyncSession = Depends(get_db),
+):
+    service = TallerAuthService(db)
+    taller_id = int(current_taller.get("sub"))
+    return await service.me(taller_id)
+
+
+# ─── Auth Taller: Refresh token ─────────────────────────────────
+@router.post("/taller/refresh")
+async def refresh_token_taller(
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No hay refresh token",
+        )
+
+    service = TallerAuthService(db)
+    return await service.refresh_token(refresh_token, response)
+
+
+# ─── Auth Taller: Logout ────────────────────────────────────────
+@router.post("/taller/logout")
+async def logout_taller(
+    response: Response,
+    _: dict = Depends(get_current_taller_from_cookie),
+    db: AsyncSession = Depends(get_db),
+):
+    service = AuthService(db)
+    return await service.logout(response)

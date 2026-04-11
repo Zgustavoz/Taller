@@ -2,3 +2,4 @@ from app.services.gestion_usuario.rol_service import RolService
 from app.services.gestion_usuario.usuario_service import UsuarioService
 from app.services.gestion_usuario.auth_service import AuthService
 from app.services.gestion_usuario.taller_service import TallerService
+from app.services.gestion_usuario.taller_auth_service import TallerAuthService
