@@ -42,7 +42,11 @@ class AuthService:
                 detail="Credenciales incorrectas",
             )
 
-        payload = {"sub": str(usuario.id), "usuario": usuario.usuario}
+        payload = {
+            "sub": str(usuario.id),
+            "usuario": usuario.usuario,
+            "actor_type": "usuario",
+        }
         access_token = create_access_token(payload)
         refresh_token = create_refresh_token(payload)
 
@@ -76,6 +80,13 @@ class AuthService:
                 detail="Token inválido",
             )
 
+        actor_type = payload.get("actor_type")
+        if actor_type not in (None, "usuario"):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="El token no corresponde a una sesión de usuario",
+            )
+
         usuario_id = int(payload.get("sub"))
         usuario = await self.repo.obtener_por_id(usuario_id)
 
@@ -85,7 +96,11 @@ class AuthService:
                 detail="Usuario no encontrado o inactivo",
             )
 
-        nuevo_payload = {"sub": str(usuario.id), "usuario": usuario.usuario}
+        nuevo_payload = {
+            "sub": str(usuario.id),
+            "usuario": usuario.usuario,
+            "actor_type": "usuario",
+        }
         nuevo_access = create_access_token(nuevo_payload)
         nuevo_refresh = create_refresh_token(nuevo_payload)
 
@@ -245,7 +260,11 @@ class AuthService:
             )
 
         # 5. Generar JWT y setear cookies
-        payload = {"sub": str(usuario.id), "usuario": usuario.usuario}
+        payload = {
+            "sub": str(usuario.id),
+            "usuario": usuario.usuario,
+            "actor_type": "usuario",
+        }
         access_token = create_access_token(payload)
         refresh_token = create_refresh_token(payload)
         set_auth_cookies(response, access_token, refresh_token)

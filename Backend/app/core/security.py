@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from fastapi import HTTPException, status, Request, Cookie
+from fastapi import HTTPException, status, Request
 from app.core.config import settings
 
 # Hash de contraseñas
@@ -77,22 +77,50 @@ def clear_auth_cookies(response):
 
 # ─── Dependencia para proteger rutas ────────────────────────────
 
-def get_current_user_from_cookie(request: Request) -> dict:
-    """
-    Extrae y valida el access_token desde la cookie.
-    Úsala como dependencia en rutas protegidas:
-        current_user = Depends(get_current_user_from_cookie)
-    """
+def _get_current_from_cookie(request: Request) -> dict:
+    """Extrae y valida el access_token desde cookie."""
     token = request.cookies.get("access_token")
     if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="No autenticado",
         )
+
     payload = decode_token(token)
     if payload.get("type") != "access":
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido",
         )
+
+    return payload
+
+
+def get_current_user_from_cookie(request: Request) -> dict:
+    """
+    Extrae y valida el access_token desde la cookie.
+    Úsala como dependencia en rutas protegidas:
+        current_user = Depends(get_current_user_from_cookie)
+    """
+    payload = _get_current_from_cookie(request)
+
+    actor_type = payload.get("actor_type")
+    if actor_type not in (None, "usuario"):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token no corresponde a un usuario",
+        )
+
+    return payload
+
+
+def get_current_taller_from_cookie(request: Request) -> dict:
+    """Valida que la sesión autenticada pertenezca a un taller."""
+    payload = _get_current_from_cookie(request)
+    if payload.get("actor_type") != "taller":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token no corresponde a un taller",
+        )
+
     return payload
