@@ -54,6 +54,8 @@ class AuthService:
 
         return {
             "mensaje": "Inicio de sesión exitoso",
+            "access_token": access_token,        # ← NUEVO: también en body
+            "refresh_token": refresh_token, 
             "usuario": {
                 "id": usuario.id,
                 "nombre": usuario.nombre,
@@ -271,6 +273,8 @@ class AuthService:
 
         return {
             "mensaje": "Autenticación con Google exitosa",
+            "access_token": access_token,      
+            "refresh_token": refresh_token, 
             "usuario": {
                 "id": usuario.id,
                 "nombre": usuario.nombre,

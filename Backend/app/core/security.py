@@ -96,21 +96,52 @@ def _get_current_from_cookie(request: Request) -> dict:
     return payload
 
 
+# def get_current_user_from_cookie(request: Request) -> dict:
+#     """
+#     Extrae y valida el access_token desde la cookie.
+#     Úsala como dependencia en rutas protegidas:
+#         current_user = Depends(get_current_user_from_cookie)
+#     """
+#     payload = _get_current_from_cookie(request)
+
+#     actor_type = payload.get("actor_type")
+#     if actor_type not in (None, "usuario"):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Token no corresponde a un usuario",
+#         )
+
+#     return payload
+
 def get_current_user_from_cookie(request: Request) -> dict:
     """
-    Extrae y valida el access_token desde la cookie.
-    Úsala como dependencia en rutas protegidas:
-        current_user = Depends(get_current_user_from_cookie)
+    Acepta token desde:
+    1. Cookie HttpOnly (web/Angular)
+    2. Header Authorization: Bearer <token> (Flutter/mobile)
     """
-    payload = _get_current_from_cookie(request)
+    token: Optional[str] = None
 
-    actor_type = payload.get("actor_type")
-    if actor_type not in (None, "usuario"):
+    # Intentar desde header Authorization (Flutter)
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.replace("Bearer ", "").strip()
+
+    # Fallback: intentar desde cookie (Angular/web)
+    if not token:
+        token = request.cookies.get("access_token")
+
+    if not token:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token no corresponde a un usuario",
+            detail="No autenticado",
         )
 
+    payload = decode_token(token)
+    if payload.get("type") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido",
+        )
     return payload
 
 

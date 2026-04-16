@@ -5,6 +5,8 @@ import 'core/config/router/app_router.dart';
 import 'core/config/theme/app_theme.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/incidentes/presentation/bloc/incidente_bloc.dart';
+import 'features/vehiculos/presentation/bloc/vehiculo_bloc.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,17 +19,19 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => AuthBloc()..add(AuthCheckRequested()),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => AuthBloc()..add(AuthCheckRequested())),
+        BlocProvider(create: (_) => IncidenteBloc()),
+        BlocProvider(create: (_) => VehiculoBloc()),
+      ],
       child: Builder(
-        builder: (context) {
-          return MaterialApp.router(
-            title: 'Sistema de Información',
-            debugShowCheckedModeBanner: false,
-            theme: AppTheme.theme,
-            routerConfig: appRouter,
-          );
-        },
+        builder: (context) => MaterialApp.router(
+          title: 'Sistema de Información',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.theme,
+          routerConfig: appRouter,
+        ),
       ),
     );
   }

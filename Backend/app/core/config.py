@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     RESEND_API_KEY: str
     RESEND_FROM_EMAIL: str
 
+    # Cloudinary
+    CLOUDINARY_CLOUD_NAME: str
+    CLOUDINARY_API_KEY: str
+    CLOUDINARY_API_SECRET: str
+
     # App
     FRONTEND_URL: str = "http://localhost:4200"
 
