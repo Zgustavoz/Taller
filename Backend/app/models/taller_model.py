@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, TIMESTAMP, Numeric, func, text
 from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy.orm import relationship
 from geoalchemy2 import Geometry
 from app.core.db import Base
 
@@ -22,3 +23,6 @@ class Taller(Base):
     token_fcm = Column(Text, nullable=True)
     esta_activo = Column(Boolean, nullable=False, server_default=text("true"))
     creado_en = Column(TIMESTAMP(timezone=True), nullable=False, server_default=func.now())
+
+    #relacion con incidentes
+    incidentes = relationship("Incidente", back_populates="taller")

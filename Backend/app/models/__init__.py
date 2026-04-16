@@ -2,3 +2,9 @@ from app.models.usuario_model import Usuario
 from app.models.rol_model import Rol
 from app.models.permisos_model import Permiso
 from app.models.taller_model import Taller
+from app.models.tipo_incidente_model import TipoIncidente
+from app.models.incidente_model import Incidente
+from app.models.incidente_multimedia_model import IncidenteMultimedia
+from app.models.vehiculo_model import Vehiculo
+from app.models.tecnico_model import Tecnico
+from app.models.historial_estado_model import HistorialEstado

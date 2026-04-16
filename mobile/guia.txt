@@ -46,6 +46,15 @@ flutter pub add firebase_core
 flutter pub add permission_handler
 flutter pub add dio => para las peticiones http
 flutter pub add shared_preferences => guardar datos del usuario
+flutter pub add mapbox_maps_flutter
+flutter pub add image_picker
+flutter pub add file_picker
+flutter pub add record
+flutter pub add audioplayers
+flutter pub add geolocator
+flutter pub add http_parser
+flutter pub add mime
+flutter pub add shared_preferences
 
 flutter pub add provider #basura
 flutter pub add bloc
