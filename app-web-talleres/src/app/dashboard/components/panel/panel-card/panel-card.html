@@ -1,0 +1,14 @@
+<div
+  class="bg-base-200 p-4 rounded-xl border border-slate-200 transition-all hover:shadow-lg hover:shadow-slate-200/50 group">
+  <div class="flex justify-between items-start mb-2">
+    <div [class]="colorSelected() + ' p-2 rounded-lg'">
+      <svg lucideCircle size="28">
+        <svg [lucideIcon]="icon()" size="16" x="4" y="4">
+        </svg>
+      </svg>
+    </div>
+    <span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">+12% hoy</span>
+  </div>
+  <p class="text-xs font-bold text-on-secondary-fixed-variant uppercase tracking-widest mb-1">{{ title() }}</p>
+  <h3 class="text-4xl font-bold tabular-nums">{{statsKapis()}}</h3>
+</div>

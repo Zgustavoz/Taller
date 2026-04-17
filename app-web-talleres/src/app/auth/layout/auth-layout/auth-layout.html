@@ -1,0 +1,7 @@
+<div class="flex items-center justify-center min-h-screen">
+  <div class="w-full rounded-lg bg-slate-100 p-4 shadow-2xl" [class.max-w-xs]="!isRegisterRoute()"
+    [class.max-w-6xl]="isRegisterRoute()">
+    <h1 class="mb-2 text-center text-2xl font-sans font-bold text-balance">Auth Layout</h1>
+    <router-outlet />
+  </div>
+</div>

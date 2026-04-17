@@ -1,0 +1,34 @@
+<section
+  class="bg-surface-container-lowest p-6 rounded-xl border border-slate-200 transition-all hover:shadow-lg hover:shadow-slate-200/50 group">
+  <header class="flex items-center justify-between">
+    <h3 class="font-black text-base-content">Demanda por Rubro</h3>
+    <div class="flex items-center gap-x-2">
+      <span class="status status-lg status-primary "></span>
+      <p class="uppercase text-xs text-base-content font-bold">Volumen mensual</p>
+    </div>
+  </header>
+  @for (item of demandData(); track item) {
+  <div class="mt-4 w-full">
+    <div class="flex items-center justify-between">
+      <p class="uppercase text-xs font-black text-slate-500 ">Falla de bateria</p>
+      <span class="text-xs font-black text-slate-800">{{currentPercentage(item.cantidad)}}%</span>
+    </div>
+    <progress [class]="'progress '+ barProgress(currentPercentage(item.cantidad))"
+      [value]=" currentPercentage(item.cantidad)" max="100"></progress>
+  </div>
+  }
+  <!-- <div class="mt-2 w-full ">
+    <div class="flex items-center justify-between">
+      <p class="uppercase text-xs font-black text-slate-500 ">Falla de bateria</p>
+      <span class="text-xs font-black text-slate-800">{{quantityDemand()}}%</span>
+    </div>
+    <progress [class]="'progress '+ barProgress()" [value]="quantityDemand()" max="100"></progress>
+  </div>
+  <div class="mt-2 w-full ">
+    <div class="flex items-center justify-between">
+      <p class="uppercase text-xs font-black text-slate-500 ">Falla de bateria</p>
+      <span class="text-xs font-black text-slate-800">{{quantityDemand()}}%</span>
+    </div>
+    <progress [class]="'progress '+ barProgress()" [value]="quantityDemand()" max="100"></progress>
+  </div> -->
+</section>
