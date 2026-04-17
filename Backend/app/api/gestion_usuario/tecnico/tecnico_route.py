@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.core.security import get_current_user_from_cookie
+from app.core.security import get_current_taller_from_cookie, get_current_user_from_cookie
 from app.schemas.tecnico_schema import TecnicoCreate, TecnicoResponse, TecnicoUpdate
 from app.services.gestion_usuario.tecnico_service import TecnicoService
 
@@ -24,6 +24,16 @@ async def listar_tecnicos(
     _: dict = Depends(get_current_user_from_cookie),
 ):
     return await TecnicoService(db).listar(solo_activos)
+
+
+@router.get("/me", response_model=list[TecnicoResponse])
+async def listar_mis_tecnicos(
+    solo_activos: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_taller: dict = Depends(get_current_taller_from_cookie),
+):
+    taller_id = int(current_taller.get("sub"))
+    return await TecnicoService(db).listar_por_taller(taller_id=taller_id, solo_activos=solo_activos)
 
 
 @router.get("/{tecnico_id}", response_model=TecnicoResponse)
