@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
+import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/usuario_model.dart';
@@ -80,6 +83,32 @@ class AuthDatasource {
   Future<UsuarioModel> me() async {
     try {
       final response = await _dio.get('/auth/me');
+      final data = response.data;
+      final usuarioJson = data is Map && data.containsKey('usuario')
+          ? data['usuario']
+          : data;
+      return UsuarioModel.fromJson(usuarioJson);
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<UsuarioModel> subirFotoPerfil(int usuarioId, File foto) async {
+    try {
+      final formData = FormData();
+      final mime = lookupMimeType(foto.path) ?? 'application/octet-stream';
+      final nombre = foto.path.split('/').last;
+      formData.files.add(
+        MapEntry(
+          'foto',
+          await MultipartFile.fromFile(
+            foto.path,
+            filename: nombre,
+            contentType: DioMediaType.parse(mime),
+          ),
+        ),
+      );
+      final response = await _dio.patch('/usuarios/$usuarioId/foto', data: formData);
       return UsuarioModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);

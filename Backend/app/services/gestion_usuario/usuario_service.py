@@ -1,10 +1,11 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.gestion_usuario.usuario.usuario_repository import UsuarioRepository
 from app.schemas.usuario_schema import (
     UsuarioCreate, UsuarioUpdate, UsuarioResponse, CambiarPassword
 )
 from app.core.security import verify_password
+from app.services.incidentes.cloudinary_service import subir_archivo_cloudinary
 
 
 class UsuarioService:
@@ -75,6 +76,25 @@ class UsuarioService:
             )
         await self.repo.actualizar_password(usuario_id, data.password_nueva)
         return {"mensaje": "Contraseña actualizada correctamente"}
+
+    async def subir_foto(self, usuario_id: int, foto: UploadFile, current_user_id: int) -> UsuarioResponse:
+        usuario = await self.repo.obtener_por_id(usuario_id)
+        if not usuario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado",
+            )
+        if usuario.id != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No tienes permiso",
+            )
+        resultado = await subir_archivo_cloudinary(foto, carpeta="usuarios")
+        usuario = await self.repo.actualizar(
+            usuario_id,
+            UsuarioUpdate.model_validate({"url": resultado["url"]}),
+        )
+        return UsuarioResponse.model_validate(usuario)
 
     # ─── Cambiar estado ──────────────────────────────────────────
     async def cambiar_estado(self, usuario_id: int, estado: bool) -> UsuarioResponse:

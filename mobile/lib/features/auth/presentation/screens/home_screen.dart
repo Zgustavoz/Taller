@@ -597,13 +597,22 @@ class _AppDrawer extends StatelessWidget {
                   radius: 32,
                   backgroundColor:
                       Colors.white.withValues(alpha: 0.2),
-                  child: Text(
-                    nombre.isNotEmpty ? nombre[0].toUpperCase() : 'U',
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold),
-                  ),
+                  backgroundImage: authState is AuthAuthenticated &&
+                          authState.usuario.url != null &&
+                          authState.usuario.url!.isNotEmpty
+                      ? NetworkImage(authState.usuario.url!)
+                      : null,
+                  child: authState is AuthAuthenticated &&
+                          authState.usuario.url != null &&
+                          authState.usuario.url!.isNotEmpty
+                      ? null
+                      : Text(
+                          nombre.isNotEmpty ? nombre[0].toUpperCase() : 'U',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold),
+                        ),
                 ),
                 const SizedBox(height: 12),
                 Text(nombre,
@@ -635,7 +644,7 @@ class _AppDrawer extends StatelessWidget {
                   label: 'Mi perfil',
                   onTap: () {
                     Navigator.pop(context);
-                    // context.push('/perfil');
+                    context.push('/perfil');
                   },
                 ),
                 _DrawerItem(

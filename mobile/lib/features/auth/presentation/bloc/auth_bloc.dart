@@ -11,6 +11,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<AuthRegisterRequested>(_onRegister);
     on<AuthLogoutRequested>(_onLogout);
     on<AuthCheckRequested>(_onCheck);
+    on<AuthUsuarioActualizado>(_onUsuarioActualizado);
   }
 
   Future<void> _onLogin(AuthLoginRequested event, Emitter<AuthState> emit) async {
@@ -60,5 +61,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(AuthUnauthenticated());
     }
+  }
+
+  Future<void> _onUsuarioActualizado( AuthUsuarioActualizado event, Emitter<AuthState> emit,) async {
+    emit(AuthAuthenticated(event.usuario));
   }
 }

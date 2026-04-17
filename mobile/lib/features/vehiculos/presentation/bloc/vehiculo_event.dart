@@ -10,9 +10,10 @@ class VehiculoCargar extends VehiculoEvent {}
 
 class VehiculoCrear extends VehiculoEvent {
   final Map<String, dynamic> data;
-  const VehiculoCrear(this.data);
+  final String? fotoPath;
+  const VehiculoCrear(this.data, {this.fotoPath});
   @override
-  List<Object?> get props => [data];
+  List<Object?> get props => [data, fotoPath];
 }
 
 class VehiculoEliminar extends VehiculoEvent {

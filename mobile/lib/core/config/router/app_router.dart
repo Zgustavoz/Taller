@@ -5,6 +5,7 @@ import '../../../features/auth/presentation/bloc/auth_state.dart';
 import '../../../features/auth/presentation/screens/login_screen.dart';
 import '../../../features/auth/presentation/screens/register_screen.dart';
 import '../../../features/auth/presentation/screens/home_screen.dart';
+import '../../../features/auth/presentation/screens/perfil_screen.dart';
 import '../../../features/incidentes/presentation/screens/incidentes_list_screen.dart';
 import '../../../features/incidentes/presentation/screens/crear_incidente_screen.dart';
 import '../../../features/incidentes/presentation/screens/detalle_incidente_screen.dart';
@@ -36,5 +37,6 @@ final GoRouter appRouter = GoRouter(
       ),
     ),
     GoRoute(path: '/vehiculos', builder: (_, _) => const VehiculosScreen()),
+    GoRoute(path: '/perfil', builder: (_, __) => const PerfilScreen()),
   ],
 );

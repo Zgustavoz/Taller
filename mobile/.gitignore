@@ -93,3 +93,6 @@ flutter_*.log
 
 # Environment files
 .env
+# extras
+android/app/google-services.json
+firebase.json

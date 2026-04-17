@@ -22,5 +22,5 @@ class UsuarioEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, usuario, correo];
+  List<Object?> get props => [id, usuario, correo, url];
 }

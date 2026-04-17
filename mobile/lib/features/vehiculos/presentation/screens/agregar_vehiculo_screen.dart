@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart' as img_picker;
 import '../../../../core/config/theme/app_theme.dart';
 import '../../../../core/common/widgets/custom_text_field.dart';
 import '../bloc/vehiculo_bloc.dart';
@@ -21,6 +24,8 @@ class _AgregarVehiculoScreenState extends State<AgregarVehiculoScreen> {
   final _placaCtrl = TextEditingController();
   final _colorCtrl = TextEditingController();
   String _tipoSeleccionado = 'sedan';
+  File? _fotoVehiculo;
+  final img_picker.ImagePicker _picker = img_picker.ImagePicker();
 
   final List<Map<String, dynamic>> _tipos = [
     {'valor': 'sedan', 'label': 'Sedán', 'icono': Icons.directions_car_rounded},
@@ -50,8 +55,24 @@ class _AgregarVehiculoScreenState extends State<AgregarVehiculoScreen> {
             'placa': _placaCtrl.text.trim().toUpperCase(),
             'color': _colorCtrl.text.trim().isEmpty ? null : _colorCtrl.text.trim(),
             'tipo': _tipoSeleccionado,
-          }));
+          },
+          fotoPath: _fotoVehiculo?.path,
+      ));
     }
+  }
+
+  Future<void> _pickFoto() async {
+    final foto = await _picker.pickImage(
+      source: img_picker.ImageSource.gallery,
+      imageQuality: 75,
+    );
+    if (foto != null) {
+      setState(() => _fotoVehiculo = File(foto.path));
+    }
+  }
+
+  void _removerFoto() {
+    setState(() => _fotoVehiculo = null);
   }
 
   @override
@@ -109,6 +130,54 @@ class _AgregarVehiculoScreenState extends State<AgregarVehiculoScreen> {
                     size: 44,
                     color: AppTheme.accent,
                   ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              GestureDetector(
+                onTap: _pickFoto,
+                child: Column(
+                  children: [
+                    if (_fotoVehiculo != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(18),
+                        child: Image.file(
+                          _fotoVehiculo!,
+                          width: 140,
+                          height: 140,
+                          fit: BoxFit.cover,
+                        ),
+                      )
+                    else
+                      Container(
+                        width: 140,
+                        height: 140,
+                        decoration: BoxDecoration(
+                          color: AppTheme.accent.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: AppTheme.accent),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.camera_alt_outlined,
+                                size: 32, color: AppTheme.accent),
+                            const SizedBox(height: 8),
+                            Text('Agregar foto',
+                                style: TextStyle(
+                                    color: AppTheme.accent,
+                                    fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    if (_fotoVehiculo != null) ...[
+                      const SizedBox(height: 10),
+                      TextButton.icon(
+                        onPressed: _removerFoto,
+                        icon: const Icon(Icons.close_rounded),
+                        label: const Text('Eliminar foto'),
+                      ),
+                    ],
+                  ],
                 ),
               ),
               const SizedBox(height: 24),

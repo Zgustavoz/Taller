@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:mime/mime.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/vehiculo_model.dart';
 
@@ -22,5 +24,23 @@ class VehiculoDatasource {
 
   Future<void> eliminar(int id) async {
     await _dio.delete('/vehiculos/$id');
+  }
+
+  Future<VehiculoModel> subirFoto(int id, File foto) async {
+    final formData = FormData();
+    final mime = lookupMimeType(foto.path) ?? 'application/octet-stream';
+    final nombre = foto.path.split('/').last;
+    formData.files.add(
+      MapEntry(
+        'foto',
+        await MultipartFile.fromFile(
+          foto.path,
+          filename: nombre,
+          contentType: DioMediaType.parse(mime),
+        ),
+      ),
+    );
+    final res = await _dio.patch('/vehiculos/$id/foto', data: formData);
+    return VehiculoModel.fromJson(res.data);
   }
 }

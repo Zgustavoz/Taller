@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, UploadFile, File, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.security import get_current_user_from_cookie
@@ -52,6 +52,17 @@ async def actualizar_usuario(
 ):
     service = UsuarioService(db)
     return await service.actualizar(usuario_id, data)
+
+
+@router.patch("/{usuario_id}/foto", response_model=UsuarioResponse)
+async def subir_foto_usuario(
+    usuario_id: int,
+    foto: UploadFile = File(...),
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    service = UsuarioService(db)
+    return await service.subir_foto(usuario_id, foto, int(current_user["sub"]))
 
 
 # ─── Cambiar contraseña ──────────────────────────────────────────

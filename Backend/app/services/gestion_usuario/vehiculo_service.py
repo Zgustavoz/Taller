@@ -1,7 +1,8 @@
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.gestion_usuario.vehiculo_repository import VehiculoRepository
 from app.schemas.vehiculo_schema import VehiculoCreate, VehiculoUpdate, VehiculoResponse
+from app.services.incidentes.cloudinary_service import subir_archivo_cloudinary
 
 
 class VehiculoService:
@@ -46,6 +47,20 @@ class VehiculoService:
                     detail=f"Ya existe un vehículo con la placa '{data.placa}'",
                 )
         vehiculo = await self.repo.actualizar(vehiculo_id, data)
+        return VehiculoResponse.model_validate(vehiculo)
+
+    async def subir_foto(self, vehiculo_id: int, foto: UploadFile, usuario_id: int) -> VehiculoResponse:
+        v = await self.repo.obtener_por_id(vehiculo_id)
+        if not v:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Vehículo no encontrado")
+        if v.usuario_id != usuario_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permiso")
+
+        resultado = await subir_archivo_cloudinary(foto, carpeta="vehiculos")
+        vehiculo = await self.repo.actualizar(
+            vehiculo_id,
+            VehiculoUpdate.model_validate({"url_foto": resultado["url"]}),
+        )
         return VehiculoResponse.model_validate(vehiculo)
 
     async def cambiar_estado(self, vehiculo_id: int, estado: bool) -> VehiculoResponse:

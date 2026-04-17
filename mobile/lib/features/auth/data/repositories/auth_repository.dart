@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../datasource/auth_datasource.dart';
 import '../models/usuario_model.dart';
 
@@ -28,4 +30,7 @@ class AuthRepository {
   Future<void> logout() => _datasource.logout();
 
   Future<UsuarioModel> me() => _datasource.me();
+
+  Future<UsuarioModel> subirFotoPerfil(int usuarioId, File foto) =>
+      _datasource.subirFotoPerfil(usuarioId, foto);
 }

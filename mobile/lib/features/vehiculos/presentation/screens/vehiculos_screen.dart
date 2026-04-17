@@ -159,8 +159,43 @@ class _VehiculoCard extends StatelessWidget {
                 color: AppTheme.accent.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(_iconTipo(vehiculo.tipo),
-                  color: AppTheme.accent, size: 30),
+              child: vehiculo.urlFoto != null &&
+                      vehiculo.urlFoto!.isNotEmpty
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.network(
+                        vehiculo.urlFoto!,
+                        width: 60,
+                        height: 60,
+                        fit: BoxFit.cover,
+
+                        // 👇 importante para errores
+                        errorBuilder: (_, __, ___) {
+                          return Icon(
+                            _iconTipo(vehiculo.tipo),
+                            color: AppTheme.accent,
+                            size: 30,
+                          );
+                        },
+
+                        // 👇 loading mientras carga
+                        loadingBuilder: (_, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return const Center(
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Icon(
+                      _iconTipo(vehiculo.tipo),
+                      color: AppTheme.accent,
+                      size: 30,
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(

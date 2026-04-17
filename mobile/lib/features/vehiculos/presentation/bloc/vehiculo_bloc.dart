@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/vehiculo_repository.dart';
 import 'vehiculo_event.dart';
@@ -25,7 +26,10 @@ class VehiculoBloc extends Bloc<VehiculoEvent, VehiculoState> {
   Future<void> _onCrear(VehiculoCrear e, Emitter emit) async {
     emit(VehiculoLoading());
     try {
-      await _repo.crear(e.data);
+      final vehiculo = await _repo.crear(e.data);
+      if (e.fotoPath != null) {
+        await _repo.subirFoto(vehiculo.id, File(e.fotoPath!));
+      }
       emit(VehiculoCreadoExito());
       add(VehiculoCargar());
     } catch (e) {
