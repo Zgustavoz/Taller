@@ -32,9 +32,8 @@ Propietario backend semanal: [ ] Web [ ] Mobile
 	- [ ] Definir campos minimos del panel de solicitudes.
 	- [ ] Definir campos minimos del detalle para taller.
 - Backend compartido
-	- [ ] Unificar respuesta base `{ok, mensaje, data}`.
-	- [ ] Unificar nomenclatura con `id_simple`.
-	- [ ] Definir transiciones de estado validas.
+	- [X] Unificar respuesta base `{ok, mensaje, data}`.
+	- [X] Definir transiciones de estado validas.
 
 ### Tablas BD involucradas
 - `incidentes`
