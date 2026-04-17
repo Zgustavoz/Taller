@@ -1,12 +1,10 @@
 from pydantic import BaseModel, field_validator
 from typing import Optional, List
 from datetime import datetime
+from app.core.enums import IncidenteEstado
 
 
-ESTADOS_VALIDOS = [
-    "pendiente", "analizando", "asignado",
-    "en_progreso", "resuelto", "cancelado"
-]
+ESTADOS_VALIDOS = [estado.value for estado in IncidenteEstado]
 
 
 class UbicacionInput(BaseModel):

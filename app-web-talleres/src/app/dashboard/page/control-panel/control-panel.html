@@ -1,0 +1,22 @@
+<app-header-page title="Panel de control" subtitle="Análisis de rendimiento y métricas de precisión en tiempo real." />
+
+<section class="grid grid-cols-1 sm:grid-cols-4 sm:gap-x-6 gap-y-1 mt-6 ">
+  <panel-card [icon]="iconComplete" title="Servicios completados" color="GREEN"
+    [statsKapis]="dashboardService.panelData().kpis.completados_hoy" />
+
+  <panel-card [icon]="iconCancel" title="Tasa de cancelación" color="RED"
+    [statsKapis]="dashboardService.panelData().kpis.tasa_cancelacion_pct" />
+
+  <panel-card [icon]="iconClock" title="Tiempo promedio de llegada" color="YELLOW"
+    [statsKapis]="dashboardService.panelData().kpis.tiempo_llegada_avg_min" />
+  <panel-card [icon]="iconStar" title="Calificación global" color="PURPLE"
+    [statsKapis]="dashboardService.panelData().kpis.rating_global" />
+</section>
+
+<section class="grid grid-cols-1 lg:grid-cols-4 gap-6 mt-6 items-stretch">
+  <panel-stats-rubro class="lg:col-span-3 w-full" />
+
+  <panel-assignment class="lg:col-span-1 w-full" />
+</section>
+<h3 class="text-xl font-bold">Reseñas recientes</h3>
+<panel-rating />

@@ -1,0 +1,167 @@
+<section class="register-shell mx-auto my-6 w-full max-w-6xl px-4 pb-8">
+  <div class="register-card rounded-3xl bg-base-100/95 shadow-2xl">
+    <div class="grid gap-0 lg:grid-cols-[340px_1fr]">
+      <aside class="register-aside flex flex-col justify-between p-6 text-base-100">
+        <div>
+          <p class="badge badge-accent badge-outline mb-3">Talleres</p>
+          <h2 class="text-3xl font-black leading-tight">Crea tu cuenta y empieza a recibir incidentes</h2>
+          <p class="mt-4 text-sm text-base-100/80">
+            Completa los pasos y define tu ubicacion para activar el registro del taller.
+          </p>
+        </div>
+
+        <ul class="steps steps-vertical mt-8">
+          <li class="step" [class.step-secondary]="currentStep() >= 1">Datos base</li>
+          <li class="step" [class.step-secondary]="currentStep() >= 2">Cobertura</li>
+          <li class="step" [class.step-secondary]="currentStep() >= 3">Ubicacion</li>
+        </ul>
+      </aside>
+
+      <div class="p-4 md:p-8">
+        <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="grid gap-5" novalidate>
+          <div class="rounded-2xl border border-base-300/60 bg-base-100 p-5 step-pane"
+            [class.step-pane-next]="transitionDirection() === 'next'"
+            [class.step-pane-prev]="transitionDirection() === 'prev'">
+
+            @if (currentStep() === 1) {
+            <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label class="form-control">
+                <span class="label-text font-medium">Nombre del propietario</span>
+                <input type="text" formControlName="nombre_propietario" class="input input-bordered"
+                  placeholder="Juan Perez" />
+              </label>
+
+              <label class="form-control">
+                <span class="label-text font-medium">Nombre del negocio</span>
+                <input type="text" formControlName="nombre_negocio" class="input input-bordered"
+                  placeholder="Taller Los Andes" />
+              </label>
+
+              <label class="form-control">
+                <span class="label-text font-medium">Correo</span>
+                <input type="email" formControlName="correo" class="input input-bordered"
+                  placeholder="user@example.com" />
+              </label>
+
+              <label class="form-control">
+                <span class="label-text font-medium">Telefono</span>
+                <input type="text" formControlName="telefono" class="input input-bordered" placeholder="999999999" />
+              </label>
+
+              <label class="form-control md:col-span-2">
+                <span class="label-text font-medium">Contrasena</span>
+                <input type="password" formControlName="contrasena" class="input input-bordered"
+                  placeholder="Minimo 6 caracteres" />
+              </label>
+            </section>
+            }
+
+            @if (currentStep() === 2) {
+            <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <label class="form-control md:col-span-2">
+                <span class="label-text font-medium">Direccion</span>
+                <input type="text" formControlName="direccion" class="input input-bordered"
+                  placeholder="Av. Principal 123" />
+              </label>
+
+              <label class="form-control">
+                <span class="label-text font-medium">Radio de cobertura (km)</span>
+                <input type="number" min="1" formControlName="radio_cobertura_km" class="input input-bordered" />
+              </label>
+
+              <label class="form-control">
+                <span class="label-text font-medium">Especialidades</span>
+                <input type="text" formControlName="especialidades_texto" class="input input-bordered"
+                  placeholder="frenos, llantas, electricidad" />
+                <span class="label-text-alt">Separadas por coma</span>
+              </label>
+
+              <label class="label cursor-pointer rounded-xl border border-base-300 bg-base-100 px-3 py-3">
+                <span class="label-text font-medium">Disponible para atender</span>
+                <input type="checkbox" class="toggle toggle-primary" formControlName="esta_disponible" />
+              </label>
+
+              <label class="label cursor-pointer rounded-xl border border-base-300 bg-base-100 px-3 py-3">
+                <span class="label-text font-medium">Cuenta activa</span>
+                <input type="checkbox" class="toggle toggle-primary" formControlName="esta_activo" />
+              </label>
+
+              <label class="form-control md:col-span-2">
+                <span class="label-text font-medium">Token FCM (opcional)</span>
+                <input type="text" formControlName="token_fcm" class="input input-bordered" placeholder="token_fcm" />
+              </label>
+            </section>
+            }
+
+            @if (currentStep() === 3) {
+            <section class="grid gap-4">
+              <p class="text-sm text-base-content/70">Selecciona en el mapa la ubicacion exacta del taller.</p>
+
+              <app-map mode="register" [initialCenter]="[-63.18117, -17.78326]" [initialZoom]="12"
+                (locationSelected)="onLocationSelected($event)"></app-map>
+
+              <div formGroupName="ubicacion" class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                <label class="form-control">
+                  <span class="label-text font-medium">Latitud</span>
+                  <input type="number" step="0.000001" formControlName="latitud" class="input input-bordered"
+                    readonly />
+                </label>
+
+                <label class="form-control">
+                  <span class="label-text font-medium">Longitud</span>
+                  <input type="number" step="0.000001" formControlName="longitud" class="input input-bordered"
+                    readonly />
+                </label>
+              </div>
+            </section>
+            }
+          </div>
+
+          @if (hasError()) {
+          <div class="alert alert-error" role="alert" aria-live="polite">
+            <span>No se pudo registrar el taller. Verifica los datos del paso actual e intenta nuevamente.</span>
+          </div>
+          }
+
+          <div class="mt-1 flex flex-wrap items-center justify-between gap-3">
+            <a routerLink="/auth/login" class="btn btn-ghost">Volver al login</a>
+
+            <div class="flex gap-2">
+              <button type="button" class="btn" [disabled]="isFirstStep()" (click)="goPreviousStep()">Anterior</button>
+
+              @if (!isLastStep()) {
+              <button type="button" class="btn btn-primary" (click)="goNextStep()">Siguiente</button>
+              } @else {
+              <button type="submit" class="btn btn-primary" [disabled]="isPosting()">
+                @if (isPosting()) {
+                Registrando...
+                } @else {
+                Crear cuenta de taller
+                }
+              </button>
+              }
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+@if (hasSuccess()) {
+<div class="modal modal-open" role="dialog" aria-modal="true" aria-labelledby="success-title">
+  <div class="modal-box relative overflow-hidden">
+    <h3 id="success-title" class="text-2xl font-black">Felicidades, taller registrado</h3>
+    <p class="mt-2 text-base-content/70">Tu cuenta fue creada con exito. En unos segundos te llevamos al login.</p>
+    <div class="modal-action">
+      <button type="button" class="btn btn-primary" (click)="closeSuccessModal()">Perfecto</button>
+    </div>
+
+    <div class="confetti-layer" aria-hidden="true">
+      @for (piece of confettiPieces; track piece) {
+      <span class="confetti-piece" [style.--i]="piece"></span>
+      }
+    </div>
+  </div>
+</div>
+}

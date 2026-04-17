@@ -1,0 +1,23 @@
+<section class="flex gap-x-3 items-center">
+  <span [class.badge-success]="workshopStateValue()" [class.badge-error]="!workshopStateValue()"
+    class="badge badge-soft w-30 justify-center border-0.5 border-current">
+    <div class="inline-grid *:[grid-area:1/1]">
+      <div [class.status-success]="workshopStateValue()" [class.status-error]="!workshopStateValue()"
+        class="status status-md animate-ping"></div>
+      <div [class.status-success]="workshopStateValue()" [class.status-error]="!workshopStateValue()"
+        class="status status-md"></div>
+    </div>
+    {{statusWorkshop()}}
+  </span>
+  <input type="checkbox" class="toggle toggle-success" [checked]="workshopStateValue()"
+    (change)="onToggle(stateWorkshop.checked)" #stateWorkshop />
+
+  <!-- Todo: implementar page para poder cambiar el radio de cobertura  -->
+  <a href="#">
+    <button class="btn  btn-primary btn-sm gap-2 hover:bg-primary-content hover:text-primary">
+      <svg lucideRadius size="16" title="Toggle Workshop State">
+      </svg>
+      Cobertura de taller (10 km)
+    </button>
+  </a>
+</section>

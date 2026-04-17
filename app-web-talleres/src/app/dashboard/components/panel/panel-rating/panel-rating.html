@@ -1,0 +1,23 @@
+<ul class="list bg-base-100 rounded-box shadow-md mt-4">
+
+  <li class="p-4 pb-2 text-xs opacity-60 tracking-wide uppercase">Ultimas calificaciones</li>
+  @for (rating of ratings(); track $index) {
+  <li class="list-row gap-4">
+    <div><img class="size-10 rounded-box" [src]="rating.foto_usuario" /></div>
+    <div>
+      <div>{{ rating.usuario }}</div>
+      <div class="rating rating-xs">
+        @for (star of [1, 2, 3, 4, 5]; track star) {
+        <div class="mask mask-star bg-orange-400" aria-label="1 star" [aria-current]="rating.score === star"></div>
+        }
+      </div>
+    </div>
+    <p class="list-col-wrap text-xs">
+      {{ rating.comentario }}
+    </p>
+    <div [class.badge-primary]="viewRating(rating.prioridad_incidente)"
+      class="badge uppercase font-semibold text-xs font-sans tracking-tight">Prioridad nivel
+      {{rating.prioridad_incidente}}</div>
+  </li>
+  }
+</ul>

@@ -4,6 +4,7 @@ from typing import Optional
 from app.repositories.incidentes.incidente_repository import IncidenteRepository
 from app.schemas.incidente_schema import IncidenteCreate, IncidenteUpdate
 from app.models.historial_estado_model import HistorialEstado
+from app.services.incidentes.estado_validator import EstadoIncidenteValidator
 
 
 class IncidenteService:
@@ -130,28 +131,21 @@ class IncidenteService:
         return self._serializar(incidente, coordenadas)
 
     async def cambiar_estado(self, incidente_id: int, estado: str) -> dict:
-        estados_validos = [
-            "pendiente", "analizando", "asignado",
-            "en_progreso", "resuelto", "cancelado"
-        ]
-        if estado not in estados_validos:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Estado inválido. Válidos: {estados_validos}",
-            )
         incidente_actual = await self.repo.obtener_por_id(incidente_id)
         if not incidente_actual:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Incidente {incidente_id} no encontrado",
             )
+        estado_anterior = incidente_actual.estado
+        EstadoIncidenteValidator.validar_transicion(estado_anterior, estado)
         incidente = await self.repo.cambiar_estado(incidente_id, estado)
         await self._guardar_historial(
             incidente_id=incidente_id,
-            estado_anterior=incidente_actual.estado,
+            estado_anterior=estado_anterior,
             estado_nuevo=estado,
             tipo_actor="sistema",
-            notas=f"Estado cambiado de {incidente_actual.estado} a {estado}",
+            notas=f"Estado cambiado de {estado_anterior} a {estado}",
         )
         coordenadas = await self.repo.obtener_coordenadas(incidente_id)
         return self._serializar(incidente, coordenadas)
