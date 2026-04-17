@@ -29,11 +29,11 @@ export class SideMenuOptions {
       route: '/dashboard/solicitudes'
     },
     {
-      label: 'Servicios Activos',
+      label: 'Gestión de técnicos',
       icon: LucideUserRoundCog,
-      tooltip: 'Servicios Activos',
-      title: 'Servicios',
-      route: '/dashboard/servicios'
+      tooltip: 'Gestión de técnicos',
+      title: 'Técnicos',
+      route: '/dashboard/tecnicos'
     }
   ]
 }

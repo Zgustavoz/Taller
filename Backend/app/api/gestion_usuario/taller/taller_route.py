@@ -2,8 +2,13 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.core.security import get_current_user_from_cookie
-from app.schemas.taller_schema import TallerCreate, TallerResponse, TallerUpdate
+from app.core.security import get_current_taller_from_cookie, get_current_user_from_cookie
+from app.schemas.taller_schema import (
+    SolicitudPanelMinimaResponse,
+    TallerCreate,
+    TallerResponse,
+    TallerUpdate,
+)
 from app.services.gestion_usuario.taller_service import TallerService
 
 router = APIRouter(prefix="/talleres", tags=["Talleres"])
@@ -26,6 +31,17 @@ async def listar_talleres(
 ):
     service = TallerService(db)
     return await service.listar(solo_activos)
+
+
+@router.get("/me/solicitudes", response_model=list[SolicitudPanelMinimaResponse])
+async def listar_mis_solicitudes(
+    estado: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_taller: dict = Depends(get_current_taller_from_cookie),
+):
+    service = TallerService(db)
+    taller_id = int(current_taller.get("sub"))
+    return await service.listar_solicitudes_minimas(taller_id=taller_id, estado=estado)
 
 
 @router.get("/{taller_id}", response_model=TallerResponse)

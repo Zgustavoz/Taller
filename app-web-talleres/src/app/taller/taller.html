@@ -1,1 +1,235 @@
-<p>taller works!</p>,
+<app-header-page title="Gestión de Técnicos"
+  subtitle="Diseño de uso directo: registra, edita y da de baja técnicos sin capacitación previa." />
+
+<section class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+  <article class="stat bg-base-100 rounded-xl border border-base-300">
+    <div class="stat-title">Total técnicos</div>
+    <div class="stat-value text-primary">{{ totalTecnicos() }}</div>
+    <div class="stat-desc">Plantilla registrada</div>
+  </article>
+
+  <article class="stat bg-base-100 rounded-xl border border-base-300">
+    <div class="stat-title">Técnicos activos</div>
+    <div class="stat-value text-success">{{ totalActivos() }}</div>
+    <div class="stat-desc">Disponibles para asignación</div>
+  </article>
+
+  <article class="stat bg-base-100 rounded-xl border border-base-300">
+    <div class="stat-title">Disponibles ahora</div>
+    <div class="stat-value text-info">{{ totalDisponibles() }}</div>
+    <div class="stat-desc">Con estado operativo</div>
+  </article>
+</section>
+
+@if (errorMessage()) {
+<div class="alert alert-error mt-4">
+  <span>{{ errorMessage() }}</span>
+</div>
+}
+
+@if (successMessage()) {
+<div class="alert alert-success mt-4">
+  <span>{{ successMessage() }}</span>
+</div>
+}
+
+<section class="mt-6 grid grid-cols-1 xl:grid-cols-5 gap-6 items-start">
+  <article class="xl:col-span-3 card bg-base-100 border border-base-300 shadow-sm">
+    <div class="card-body gap-4">
+      <div class="flex flex-col md:flex-row md:items-end gap-3">
+        <label class="form-control w-full md:max-w-xs">
+          <div class="label"><span class="label-text">Buscar técnico</span></div>
+          <input type="text" class="input input-bordered" placeholder="Nombre, teléfono o especialidad"
+            [value]="filtroTexto()" (input)="onFiltroTextoInput($event)" />
+        </label>
+
+        <label class="form-control w-full md:w-44">
+          <div class="label"><span class="label-text">Estado</span></div>
+          <select class="select select-bordered" [value]="filtroEstado()" (change)="onFiltroEstadoChange($event)">
+            <option value="todos">Todos</option>
+            <option value="activos">Activos</option>
+            <option value="inactivos">Inactivos</option>
+          </select>
+        </label>
+
+        <label class="form-control w-full md:w-44">
+          <div class="label"><span class="label-text">Disponibilidad</span></div>
+          <select class="select select-bordered" [value]="filtroDisponibilidad()"
+            (change)="onFiltroDisponibilidadChange($event)">
+            <option value="todos">Todos</option>
+            <option value="disponibles">Disponibles</option>
+            <option value="ocupados">Ocupados</option>
+          </select>
+        </label>
+
+        <button type="button" class="btn btn-outline" (click)="cargarTecnicos()">Actualizar</button>
+      </div>
+
+      @if (loading()) {
+      <div class="flex items-center gap-2 text-sm opacity-80 py-6">
+        <span class="loading loading-spinner loading-sm"></span>
+        Cargando técnicos...
+      </div>
+      } @else if (tecnicosFiltrados().length === 0) {
+      <div class="py-8 text-center rounded-lg border border-dashed border-base-300">
+        <h4 class="font-semibold">Sin resultados</h4>
+        <p class="text-sm opacity-80">No hay técnicos que coincidan con los filtros actuales.</p>
+      </div>
+      } @else {
+      <div class="overflow-x-auto">
+        <table class="table table-zebra">
+          <thead>
+            <tr>
+              <th>Técnico</th>
+              <th>Especialidades</th>
+              <th>Disponibilidad</th>
+              <th>GPS</th>
+              <th class="text-right">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (tecnico of tecnicosFiltrados(); track tecnico.id) {
+            <tr>
+              <td>
+                <div class="font-semibold">{{ tecnico.nombre_completo }}</div>
+                <div class="text-xs opacity-70">{{ tecnico.telefono || 'Sin teléfono' }}</div>
+                <div class="text-xs opacity-70">ID: {{ tecnico.id }}</div>
+              </td>
+              <td>
+                @if (tecnico.especialidades.length === 0) {
+                <span class="text-xs opacity-70">Sin especialidades</span>
+                } @else {
+                <div class="flex flex-wrap gap-1">
+                  @for (esp of tecnico.especialidades; track esp) {
+                  <span class="badge badge-outline">{{ esp }}</span>
+                  }
+                </div>
+                }
+              </td>
+              <td>
+                <div class="flex flex-col gap-1">
+                  <span class="badge" [class.badge-success]="tecnico.esta_disponible"
+                    [class.badge-warning]="!tecnico.esta_disponible">
+                    {{ tecnico.esta_disponible ? 'Disponible' : 'Ocupado' }}
+                  </span>
+                  <span class="badge" [class.badge-primary]="tecnico.esta_activo"
+                    [class.badge-error]="!tecnico.esta_activo">
+                    {{ tecnico.esta_activo ? 'Activo' : 'Inactivo' }}
+                  </span>
+                </div>
+              </td>
+              <td>
+                @if (tecnico.ubicacion_actual) {
+                <div class="text-xs leading-5">
+                  <div>Lat: {{ tecnico.ubicacion_actual.latitud }}</div>
+                  <div>Lng: {{ tecnico.ubicacion_actual.longitud }}</div>
+                </div>
+                } @else {
+                <span class="text-xs opacity-70">Sin ubicación</span>
+                }
+              </td>
+              <td>
+                <div class="flex justify-end flex-wrap gap-2">
+                  <button type="button" class="btn btn-xs btn-outline" (click)="editarTecnico(tecnico)">Editar</button>
+                  <button type="button" class="btn btn-xs btn-outline" (click)="toggleDisponibilidad(tecnico)">
+                    {{ tecnico.esta_disponible ? 'Marcar ocupado' : 'Marcar disponible' }}
+                  </button>
+                  <button type="button" class="btn btn-xs" [class.btn-warning]="tecnico.esta_activo"
+                    [class.btn-success]="!tecnico.esta_activo" (click)="toggleEstado(tecnico)">
+                    {{ tecnico.esta_activo ? 'Dar de baja' : 'Reactivar' }}
+                  </button>
+                  <button type="button" class="btn btn-xs btn-error" [disabled]="deleting() === tecnico.id"
+                    (click)="eliminarTecnico(tecnico)">
+                    @if (deleting() === tecnico.id) { Eliminando... } @else { Eliminar }
+                  </button>
+                </div>
+              </td>
+            </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    </div>
+  </article>
+
+  <article class="xl:col-span-2 card bg-base-100 border border-base-300 shadow-sm">
+    <div class="card-body">
+      <div class="flex items-start justify-between gap-3">
+        <div>
+          <h3 class="card-title">{{ editandoId() ? 'Editar técnico' : 'Registrar técnico' }}</h3>
+          <p class="text-sm opacity-80">Formulario guiado con los datos mínimos para operar en campo.</p>
+        </div>
+        @if (editandoId()) {
+        <button type="button" class="btn btn-sm btn-ghost" (click)="resetFormulario()">Cancelar edición</button>
+        }
+      </div>
+
+      <div class="space-y-2 rounded-xl border border-base-300 bg-base-200/60 p-3">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h4 class="font-semibold">Ubicación del técnico</h4>
+            <p class="text-sm opacity-75">El mapa usa como base la ubicación del taller autenticado y permite ajustar el
+              pin.</p>
+          </div>
+          <button type="button" class="btn btn-outline btn-sm" (click)="usarMiUbicacion()">Usar mi ubicación
+            actual</button>
+        </div>
+
+        @if (ubicacionTecnico()) {
+        <div class="text-xs opacity-80 flex flex-wrap gap-3">
+          <span>Lat: {{ ubicacionTecnico()?.latitud }}</span>
+          <span>Lng: {{ ubicacionTecnico()?.longitud }}</span>
+        </div>
+        } @else {
+        <div class="text-xs opacity-80">Aún no se ha definido ubicación.</div>
+        }
+
+        <app-map mode="register" [initialLocation]="ubicacionTecnico() ?? ubicacionTaller()"
+          [initialCenter]="ubicacionTaller() ? [ubicacionTaller()!.longitud, ubicacionTaller()!.latitud] : [-63.18117, -17.78326]"
+          [initialZoom]="15" (locationSelected)="ubicacionTecnico.set($event)">
+        </app-map>
+      </div>
+
+      <form [formGroup]="tecnicoForm" (ngSubmit)="guardarTecnico()" class="space-y-3 grid">
+        <label class="input">
+          <svg lucideUser></svg>
+          <input type="text" class="grow" formControlName="nombre_completo" placeholder="Ej. Juan Pérez" />
+          @if (tecnicoForm.controls.nombre_completo.touched && tecnicoForm.controls.nombre_completo.invalid) {
+          <div class="label"><span class="label-text-alt text-error">Mínimo 3 caracteres.</span></div>
+          }
+        </label>
+
+        <label class="input">
+          <svg lucidePhone></svg>
+          <input type="text" class="grow" placeholder="Ej. 70000000" formControlName="telefono" />
+        </label>
+        <div class="label"><span class="label-text-alt">Separa por coma para crear varias especialidades.</span></div>
+        <label class="input">
+          <svg lucideWrench></svg>
+          <input type="text" class="grow" formControlName="especialidades"
+            placeholder="Batería, llantas, grúa, electricidad" />
+        </label>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <label class="label cursor-pointer justify-start gap-3 border border-base-300 rounded-lg px-3 py-2">
+            <input type="checkbox" class="toggle toggle-primary" formControlName="esta_disponible" />
+            <span class="label-text">Disponible para atender</span>
+          </label>
+
+          <label class="label cursor-pointer justify-start gap-3 border border-base-300 rounded-lg px-3 py-2">
+            <input type="checkbox" class="toggle toggle-success" formControlName="esta_activo" />
+            <span class="label-text">Activo en el taller</span>
+          </label>
+        </div>
+
+        <div class="flex flex-wrap gap-2 pt-2">
+          <button type="submit" class="btn btn-primary" [disabled]="submitting()">
+            @if (submitting()) { Guardando... } @else { {{ submitLabel }} }
+          </button>
+          <button type="button" class="btn btn-ghost" (click)="resetFormulario()">Limpiar</button>
+        </div>
+      </form>
+    </div>
+  </article>
+</section>
