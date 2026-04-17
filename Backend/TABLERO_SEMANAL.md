@@ -100,19 +100,18 @@ Propietario backend semanal: [ ] Web [ ] Mobile
 	"ok": true,
 	"mensaje": "Asignacion generada",
 	"data": {
-		"incidente_id": "id_simple",
 		"estado": "asignado",
 		"candidatos": [
 			{
-				"id_taller": "id_simple",
-				"id_tecnico": "id_simple",
+				"id_taller": "id",
+				"id_tecnico": "id",
 				"distancia_km": 2.35,
 				"score": 91.2
 			}
 		],
 		"seleccion": {
-			"id_taller": "id_simple",
-			"id_tecnico": "id_simple",
+			"id_taller": "id",
+			"id_tecnico": "id",
 			"eta_min": 12
 		}
 	}

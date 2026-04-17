@@ -1,0 +1,17 @@
+.map-wrapper {
+  width: 100%;
+}
+
+.map-container {
+  width: 100%;
+  min-height: 360px;
+  border-radius: 0.75rem;
+  border: 1px solid color-mix(in srgb, #000 12%, transparent);
+  overflow: hidden;
+}
+
+.map-helper {
+  margin-top: 0.75rem;
+  font-size: 0.875rem;
+  color: color-mix(in srgb, #000 68%, transparent);
+}

@@ -1,0 +1,15 @@
+<ul>
+  <!-- List item -->
+  @for (option of menuOptions; track option.title) {
+  <li class="mt-1">
+    <a routerLink="{{option.route}}"
+      routerLinkActive="bg-primary-content text-primary border-primary border-l-4 is-drawer-close:border-0"
+      [routerLinkActiveOptions]="{exact: true}" class="is-drawer-close:tooltip is-drawer-close:tooltip-right py-3"
+      [attr.data-tip]="option.tooltip">
+      <!-- Home icon -->
+      <svg [size]="18" [strokeWidth]="2" [title]="option.title" [lucideIcon]="option.icon"></svg>
+      <span class="is-drawer-close:hidden">{{option.label}}</span>
+    </a>
+  </li>
+  }
+</ul>

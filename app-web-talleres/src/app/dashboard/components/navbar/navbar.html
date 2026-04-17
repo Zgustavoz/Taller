@@ -1,0 +1,19 @@
+<nav class="navbar w-full bg-base-300 flex-row items-center justify-between">
+  <label [for]="drawerId()" aria-label="open sidebar" class="btn btn-square btn-ghost">
+    <!-- Sidebar toggle icon -->
+    <svg lucidePanelLeftOpen size="18" stroke-width="2" title="Menu">
+    </svg>
+  </label>
+
+  <section class="flex flex-1 gap-4 items-center justify-between ml-4 mr-8">
+    <span class="text-rotate font-bold text-primary">
+      <span>
+        <span>MECÁNICA</span>
+        <span>GRÚA 24/7</span>
+        <span>REPUESTOS</span>
+      </span>
+    </span>
+    <app-navbar-state />
+    <app-navbar-perfil />
+  </section>
+</nav>
