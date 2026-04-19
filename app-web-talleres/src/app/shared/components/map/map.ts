@@ -6,6 +6,7 @@ import {
   input,
   OnDestroy,
   OnInit,
+  effect,
   output,
   PLATFORM_ID,
   viewChild,
@@ -39,6 +40,14 @@ export class MapComponent implements OnInit, OnDestroy {
   private mapboxModule?: MapboxModule;
   private map?: MapboxMap;
   private marker?: MapboxMarker;
+  private readonly locationEffect = effect(() => {
+    const location = this.initialLocation();
+    if (!location || !this.map || !this.mapboxModule) {
+      return;
+    }
+
+    this.placeMarker([location.longitud, location.latitud], false, false);
+  });
 
   public mode = input.required<ModeMap>();
   public initialCenter = input<[number, number]>([-63.18117, -17.78326]);
@@ -72,13 +81,13 @@ export class MapComponent implements OnInit, OnDestroy {
     this.map.on('load', () => {
       const initialLocation = this.initialLocation();
       if (initialLocation) {
-        this.placeMarker([initialLocation.longitud, initialLocation.latitud], false);
+        this.placeMarker([initialLocation.longitud, initialLocation.latitud], false, false);
       }
     });
 
     if (this.isRegisterMode()) {
       this.map.on('click', (event) => {
-        this.placeMarker([event.lngLat.lng, event.lngLat.lat], true);
+        this.placeMarker([event.lngLat.lng, event.lngLat.lat], true, true);
       });
     }
   }
@@ -91,7 +100,7 @@ export class MapComponent implements OnInit, OnDestroy {
     this.mapboxModule = undefined;
   }
 
-  private placeMarker(lngLat: [number, number], shouldFlyTo: boolean): void {
+  private placeMarker(lngLat: [number, number], shouldFlyTo: boolean, shouldEmitLocation: boolean): void {
     if (!this.map || !this.mapboxModule) {
       return;
     }
@@ -104,7 +113,9 @@ export class MapComponent implements OnInit, OnDestroy {
       .setLngLat(lngLat)
       .addTo(this.map);
 
-    this.emitLocation();
+    if (shouldEmitLocation) {
+      this.emitLocation();
+    }
 
     if (this.isRegisterMode()) {
       this.marker.on('dragend', () => this.emitLocation());

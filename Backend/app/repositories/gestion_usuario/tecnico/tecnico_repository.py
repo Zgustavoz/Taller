@@ -79,14 +79,25 @@ class TecnicoRepository:
         rows = result.mappings().all()
         return [self._to_payload(row) for row in rows]
 
+    async def listar_por_taller(self, taller_id: int, solo_activos: bool = False) -> list[dict]:
+        query = self._base_select().where(Tecnico.taller_id == taller_id)
+        if solo_activos:
+            query = query.where(Tecnico.esta_activo == True)
+
+        result = await self.db.execute(query)
+        rows = result.mappings().all()
+        return [self._to_payload(row) for row in rows]
+
     async def actualizar(self, tecnico_id: int, data: TecnicoUpdate) -> Optional[dict]:
         valores = data.model_dump(exclude_none=True)
         ubicacion = valores.pop("ubicacion_actual", None)
 
         if ubicacion is not None:
+            latitud = ubicacion["latitud"] if isinstance(ubicacion, dict) else ubicacion.latitud
+            longitud = ubicacion["longitud"] if isinstance(ubicacion, dict) else ubicacion.longitud
             valores["ubicacion_actual"] = self._ubicacion_expr(
-                ubicacion.latitud,
-                ubicacion.longitud,
+                latitud,
+                longitud,
             )
 
         if not valores:

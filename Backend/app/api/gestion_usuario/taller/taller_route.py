@@ -35,6 +35,17 @@ async def listar_talleres(
     return await service.listar(solo_activos)
 
 
+@router.get("/me/solicitudes", response_model=list[SolicitudPanelMinimaResponse])
+async def listar_mis_solicitudes(
+    estado: str | None = None,
+    db: AsyncSession = Depends(get_db),
+    current_taller: dict = Depends(get_current_taller_from_cookie),
+):
+    service = TallerService(db)
+    taller_id = int(current_taller.get("sub"))
+    return await service.listar_solicitudes_minimas(taller_id=taller_id, estado=estado)
+
+
 @router.get("/{taller_id}", response_model=TallerResponse)
 async def obtener_taller(
     taller_id: int,

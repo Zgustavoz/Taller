@@ -74,3 +74,16 @@ class TallerResponse(TallerBase):
 
     class Config:
         from_attributes = True
+
+
+class SolicitudPanelMinimaResponse(BaseModel):
+    id: int
+    estado: str
+    nivel_prioridad: Optional[int] = None
+    tipo_incidente_nombre: Optional[str] = None
+    distancia_km: Optional[float] = None
+    score: Optional[float] = None
+    creado_at: Optional[datetime] = None
+    usuario_nombre: Optional[str] = None
+    vehiculo_placa: Optional[str] = None
+    resumen: Optional[str] = None

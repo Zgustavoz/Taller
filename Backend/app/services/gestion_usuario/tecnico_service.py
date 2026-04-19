@@ -27,6 +27,10 @@ class TecnicoService:
         tecnicos = await self.repo.listar(solo_activos)
         return [TecnicoResponse.model_validate(t) for t in tecnicos]
 
+    async def listar_por_taller(self, taller_id: int, solo_activos: bool = False) -> list[TecnicoResponse]:
+        tecnicos = await self.repo.listar_por_taller(taller_id, solo_activos)
+        return [TecnicoResponse.model_validate(t) for t in tecnicos]
+
     async def actualizar(self, tecnico_id: int, data: TecnicoUpdate) -> TecnicoResponse:
         await self.obtener_por_id(tecnico_id)
         tecnico = await self.repo.actualizar(tecnico_id, data)

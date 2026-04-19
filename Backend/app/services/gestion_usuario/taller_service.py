@@ -1,8 +1,18 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.repositories.gestion_usuario.taller.taller_repository import TallerRepository
-from app.schemas.taller_schema import TallerCreate, TallerResponse, TallerUpdate
+from app.schemas.taller_schema import (
+    SolicitudPanelMinimaResponse,
+    TallerCreate,
+    TallerResponse,
+    TallerUpdate,
+)
+from app.models.incidente_model import Incidente
+from app.models.tipo_incidente_model import TipoIncidente
+from app.models.usuario_model import Usuario
+from app.models.vehiculo_model import Vehiculo
 
 
 class TallerService:
@@ -62,3 +72,49 @@ class TallerService:
         await self.obtener_por_id(taller_id)
         await self.repo.eliminar(taller_id)
         return {"mensaje": f"Taller {taller_id} eliminado correctamente"}
+
+    async def listar_solicitudes_minimas(
+        self,
+        taller_id: int,
+        estado: str | None = None,
+    ) -> list[SolicitudPanelMinimaResponse]:
+        # Sin tabla de asignaciones aún, usamos incidentes del taller autenticado.
+        query = (
+            select(
+                Incidente.id,
+                Incidente.estado,
+                Incidente.nivel_prioridad,
+                TipoIncidente.nombre.label("tipo_incidente_nombre"),
+                Incidente.creado_at,
+                Usuario.nombre.label("usuario_nombre"),
+                Vehiculo.placa.label("vehiculo_placa"),
+                Incidente.ficha_resumen.label("resumen"),
+            )
+            .join(Usuario, Usuario.id == Incidente.usuario_id)
+            .outerjoin(Vehiculo, Vehiculo.id == Incidente.vehiculo_id)
+            .outerjoin(TipoIncidente, TipoIncidente.id == Incidente.tipo_incidente_id)
+            .where(Incidente.taller_asignado_id == taller_id)
+            .order_by(Incidente.creado_at.desc())
+        )
+
+        if estado:
+            query = query.where(Incidente.estado == estado)
+
+        result = await self.repo.db.execute(query)
+        rows = result.mappings().all()
+
+        return [
+            SolicitudPanelMinimaResponse(
+                id=row["id"],
+                estado=row["estado"],
+                nivel_prioridad=row["nivel_prioridad"],
+                tipo_incidente_nombre=row["tipo_incidente_nombre"],
+                distancia_km=None,
+                score=None,
+                creado_at=row["creado_at"],
+                usuario_nombre=row["usuario_nombre"],
+                vehiculo_placa=row["vehiculo_placa"],
+                resumen=row["resumen"],
+            )
+            for row in rows
+        ]
