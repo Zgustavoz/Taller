@@ -7,6 +7,7 @@ from app.core.security import (
     get_current_taller_from_cookie,
 )
 from app.schemas.taller_schema import (
+    SolicitudPanelMinimaResponse,
     TallerCreate,
     TallerResponse,
     TallerUpdate,
