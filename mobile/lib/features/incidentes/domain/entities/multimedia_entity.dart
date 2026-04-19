@@ -8,7 +8,7 @@ class MultimediaEntity extends Equatable {
   final String? tipoMime;
   final double? duracionSeg;
   final int? tamanoArchivoBytes;
-  final String? resultadoIa;
+  final dynamic resultadoIa;
   final DateTime subidoAt;
 
   const MultimediaEntity({

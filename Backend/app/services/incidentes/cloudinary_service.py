@@ -13,7 +13,21 @@ cloudinary.config(
 
 # Tipos permitidos por categoría
 TIPOS_IMAGEN = {"image/jpeg", "image/png", "image/webp", "image/gif"}
-TIPOS_AUDIO = {"audio/mpeg", "audio/wav", "audio/ogg", "audio/mp4", "audio/webm"}
+TIPOS_AUDIO = {
+    "audio/mpeg",
+    "audio/wav",
+    "audio/ogg",
+    "audio/mp4",
+    "audio/webm",
+    "audio/m4a",
+    "audio/aac",
+    "audio/x-m4a",
+    "audio/x-aac",
+    "audio/x-wav",
+    "audio/3gpp",
+    "audio/3gpp2",
+    "audio/flac",
+}
 TIPOS_VIDEO = {"video/mp4", "video/webm", "video/ogg", "video/quicktime"}
 
 MAX_SIZE_BYTES = 50 * 1024 * 1024  # 50 MB
@@ -36,7 +50,7 @@ def detectar_resource_type(content_type: str) -> str:
     if content_type in TIPOS_IMAGEN:
         return "image"
     if content_type in TIPOS_AUDIO:
-        return "raw"
+        return "video"  # Cambiar de vuelta a "video" para audios
     if content_type in TIPOS_VIDEO:
         return "video"
     return "auto"

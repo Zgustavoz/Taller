@@ -26,3 +26,4 @@ class Taller(Base):
 
     #relacion con incidentes
     incidentes = relationship("Incidente", back_populates="taller")
+    asignaciones = relationship("AsignacionTaller", back_populates="taller")

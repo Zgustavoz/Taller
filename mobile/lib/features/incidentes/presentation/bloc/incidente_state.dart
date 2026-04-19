@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/incidente_entity.dart';
 import '../../data/models/tipo_incidente_model.dart';
+import '../../data/models/taller_cercano_model.dart';
 
 abstract class IncidenteState extends Equatable {
   const IncidenteState();
@@ -9,7 +10,17 @@ abstract class IncidenteState extends Equatable {
 }
 
 class IncidenteInitial extends IncidenteState {}
+
 class IncidenteLoading extends IncidenteState {}
+
+// Estado especial mientras Gemini analiza
+class IncidenteAnalizando extends IncidenteState {
+  final String mensaje;
+  const IncidenteAnalizando(
+      {this.mensaje = 'Analizando con IA, por favor espera...'});
+  @override
+  List<Object?> get props => [mensaje];
+}
 
 class IncidenteListaCargada extends IncidenteState {
   final List<IncidenteEntity> incidentes;
@@ -21,14 +32,17 @@ class IncidenteListaCargada extends IncidenteState {
 
 class IncidenteDetalleCargado extends IncidenteState {
   final IncidenteEntity incidente;
-  const IncidenteDetalleCargado(this.incidente);
+  final List<TallerCercanoModel> talleresCercanos;
+  const IncidenteDetalleCargado(this.incidente,
+      {this.talleresCercanos = const []});
   @override
   List<Object?> get props => [incidente];
 }
 
 class IncidenteCreadoExito extends IncidenteState {
   final IncidenteEntity incidente;
-  const IncidenteCreadoExito(this.incidente);
+  final int talleresNotificados;
+  const IncidenteCreadoExito(this.incidente, {this.talleresNotificados = 0});
   @override
   List<Object?> get props => [incidente];
 }

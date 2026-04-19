@@ -7,13 +7,32 @@ import '../bloc/incidente_event.dart';
 import '../bloc/incidente_state.dart';
 import '../../domain/entities/incidente_entity.dart';
 
-class IncidentesListScreen extends StatelessWidget {
+class IncidentesListScreen extends StatefulWidget {
   const IncidentesListScreen({super.key});
 
   @override
+  State<IncidentesListScreen> createState() => _IncidentesListScreenState();
+}
+
+class _IncidentesListScreenState extends State<IncidentesListScreen> {
+  late final IncidenteBloc _bloc;
+
+  @override
+  void initState() {
+    super.initState();
+    _bloc = IncidenteBloc()..add(IncidenteCargarMios());
+  }
+
+  @override
+  void dispose() {
+    _bloc.close();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => IncidenteBloc()..add(IncidenteCargarMios()),
+    return BlocProvider.value(
+      value: _bloc,
       child: const _IncidentesListView(),
     );
   }

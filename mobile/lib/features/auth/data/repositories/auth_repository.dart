@@ -33,4 +33,7 @@ class AuthRepository {
 
   Future<UsuarioModel> subirFotoPerfil(int usuarioId, File foto) =>
       _datasource.subirFotoPerfil(usuarioId, foto);
+
+  Future<void> registrarFcmToken(String token) =>
+      _datasource.registrarFcmToken(token);
 }

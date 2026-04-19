@@ -8,3 +8,4 @@ from app.models.incidente_multimedia_model import IncidenteMultimedia
 from app.models.vehiculo_model import Vehiculo
 from app.models.tecnico_model import Tecnico
 from app.models.historial_estado_model import HistorialEstado
+from app.models.notificacion_model import Notificacion

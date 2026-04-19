@@ -45,6 +45,7 @@ class UsuarioUpdate(BaseModel):
     telefono: Optional[str] = None
     url: Optional[str] = None
     estado: Optional[bool] = None
+    token_fcm: Optional[str] = None
 
 
 class CambiarPassword(BaseModel):                # ← cambio de nombre de clase
@@ -66,6 +67,7 @@ class CambiarPassword(BaseModel):                # ← cambio de nombre de clase
 class UsuarioResponse(UsuarioBase):
     id: int
     fecha_creacion: datetime
+    token_fcm: Optional[str] = None 
 
     class Config:
         from_attributes = True

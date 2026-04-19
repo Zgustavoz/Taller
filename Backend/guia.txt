@@ -28,3 +28,6 @@ uvicorn app.main:app --reload
 
 #para probar la aplicacion mobil 
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+#modelo que sirve
+_MODELO = "gemini-flash-latest"

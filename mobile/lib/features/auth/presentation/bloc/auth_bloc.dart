@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/services/firebase_messaging_service.dart';
 import '../../data/repositories/auth_repository.dart';
 import 'auth_event.dart';
 import 'auth_state.dart';
@@ -21,6 +22,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         usuario: event.usuario,
         password: event.password,
       );
+      // Registrar token FCM después del login
+      final fcmToken = await FirebaseMessagingService().getToken();
+      if (fcmToken != null) {
+        await _repository.registrarFcmToken(fcmToken);
+      }
       emit(AuthAuthenticated(usuario));
     } catch (e) {
       emit(AuthError(e.toString()));
@@ -47,6 +53,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogout(AuthLogoutRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
+      await FirebaseMessagingService().limpiarToken();
       await _repository.logout();
       emit(AuthUnauthenticated());
     } catch (e) {

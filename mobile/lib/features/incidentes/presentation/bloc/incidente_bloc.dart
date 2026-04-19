@@ -8,14 +8,15 @@ class IncidenteBloc extends Bloc<IncidenteEvent, IncidenteState> {
 
   IncidenteBloc() : super(IncidenteInitial()) {
     on<IncidenteCargarMios>(_onCargarMios);
-    on<IncidenteCargarTipos>(_onCargarTipos);
     on<IncidenteCrear>(_onCrear);
     on<IncidenteCargarDetalle>(_onDetalle);
     on<IncidenteSubirArchivos>(_onSubirArchivos);
     on<IncidenteEliminarMultimedia>(_onEliminarMultimedia);
+    on<IncidenteCargarTalleresCercanos>(_onCargarTalleresCercanos);
   }
 
-  Future<void> _onCargarMios(IncidenteCargarMios e, Emitter emit) async {
+  Future<void> _onCargarMios(
+      IncidenteCargarMios e, Emitter emit) async {
     emit(IncidenteLoading());
     try {
       final incidentes = await _repo.misIncidentes();
@@ -26,54 +27,74 @@ class IncidenteBloc extends Bloc<IncidenteEvent, IncidenteState> {
     }
   }
 
-  Future<void> _onCargarTipos(IncidenteCargarTipos e, Emitter emit) async {}
-
   Future<void> _onCrear(IncidenteCrear e, Emitter emit) async {
-    emit(IncidenteLoading());
+    // Mostrar estado "analizando" mientras Gemini procesa
+    emit(const IncidenteAnalizando());
     try {
       final incidente = await _repo.crear(
         latitud: e.latitud,
         longitud: e.longitud,
-        textoDireccion: e.textoDireccion,
         descripcion: e.descripcion,
+        textoDireccion: e.textoDireccion,
         tipoIncidenteId: e.tipoIncidenteId,
+        vehiculoId: e.vehiculoId,
         nivelPrioridad: e.nivelPrioridad,
+        archivos: e.archivos,
       );
-      if (e.archivos.isNotEmpty) {
-        await _repo.subirArchivos(incidente.id, e.archivos);
-      }
-      emit(IncidenteCreadoExito(incidente));
+      emit(IncidenteCreadoExito(
+        incidente,
+        talleresNotificados: incidente.tallersNotificados,
+      ));
     } catch (e) {
       emit(IncidenteError(e.toString()));
     }
   }
 
-  Future<void> _onDetalle(IncidenteCargarDetalle e, Emitter emit) async {
+  Future<void> _onDetalle(
+      IncidenteCargarDetalle e, Emitter emit) async {
     emit(IncidenteLoading());
     try {
       final incidente = await _repo.obtener(e.id);
-      emit(IncidenteDetalleCargado(incidente));
+      final talleres = await _repo.talleresCercanos(e.id, 15.0);
+      emit(IncidenteDetalleCargado(incidente, talleresCercanos: talleres));
     } catch (e) {
       emit(IncidenteError(e.toString()));
     }
   }
 
-  Future<void> _onSubirArchivos(IncidenteSubirArchivos e, Emitter emit) async {
+  Future<void> _onSubirArchivos(
+      IncidenteSubirArchivos e, Emitter emit) async {
     emit(IncidenteLoading());
     try {
       await _repo.subirArchivos(e.incidenteId, e.archivos);
       final incidente = await _repo.obtener(e.incidenteId);
-      emit(IncidenteDetalleCargado(incidente));
+      final talleres = await _repo.talleresCercanos(e.incidenteId, 15.0);
+      emit(IncidenteDetalleCargado(incidente, talleresCercanos: talleres));
     } catch (e) {
       emit(IncidenteError(e.toString()));
     }
   }
 
-  Future<void> _onEliminarMultimedia(IncidenteEliminarMultimedia e, Emitter emit) async {
+  Future<void> _onEliminarMultimedia(
+      IncidenteEliminarMultimedia e, Emitter emit) async {
     try {
       await _repo.eliminarMultimedia(e.multimediaId);
       final incidente = await _repo.obtener(e.incidenteId);
-      emit(IncidenteDetalleCargado(incidente));
+      final talleres =
+          await _repo.talleresCercanos(e.incidenteId, 15.0);
+      emit(IncidenteDetalleCargado(incidente, talleresCercanos: talleres));
+    } catch (e) {
+      emit(IncidenteError(e.toString()));
+    }
+  }
+
+  Future<void> _onCargarTalleresCercanos(
+      IncidenteCargarTalleresCercanos e, Emitter emit) async {
+    try {
+      final talleres =
+          await _repo.talleresCercanos(e.incidenteId, e.radioKm);
+      final incidente = await _repo.obtener(e.incidenteId);
+      emit(IncidenteDetalleCargado(incidente, talleresCercanos: talleres));
     } catch (e) {
       emit(IncidenteError(e.toString()));
     }

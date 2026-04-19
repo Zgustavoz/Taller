@@ -12,7 +12,7 @@ class HistorialEstadoResponse(BaseModel):
     tipo_actor: str
     id_actor: Optional[int] = None
     notas: Optional[str] = None
-    creado_en: datetime
+    creado_at: datetime
 
     class Config:
         from_attributes = True

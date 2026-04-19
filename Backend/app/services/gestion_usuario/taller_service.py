@@ -52,6 +52,12 @@ class TallerService:
         taller = await self.repo.cambiar_estado(taller_id, estado)
         return TallerResponse.model_validate(taller)
 
+    async def actualizar_token_fcm(self, taller_id: int, token_fcm: str) -> dict:
+        """Actualiza el token FCM de un taller."""
+        await self.obtener_por_id(taller_id)
+        await self.repo.actualizar_token_fcm(taller_id, token_fcm)
+        return {"mensaje": "Token FCM actualizado correctamente"}
+
     async def eliminar(self, taller_id: int) -> dict:
         await self.obtener_por_id(taller_id)
         await self.repo.eliminar(taller_id)

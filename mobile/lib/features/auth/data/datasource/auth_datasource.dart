@@ -5,6 +5,7 @@ import 'package:mime/mime.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/usuario_model.dart';
+import '../../../../core/services/firebase_messaging_service.dart';
 
 class AuthDatasource {
   final Dio _dio = ApiClient.instance.client;
@@ -35,6 +36,9 @@ class AuthDatasource {
       // Guardar token en SharedPreferences
       final token = response.data['access_token'];
       if (token != null) await _guardarToken(token);
+
+      // registrar token FCM después del login
+      await FirebaseMessagingService().registrarTokenDespuesDeLogin();
 
       return UsuarioModel.fromJson(response.data['usuario']);
     } on DioException catch (e) {
@@ -112,6 +116,16 @@ class AuthDatasource {
       return UsuarioModel.fromJson(response.data);
     } on DioException catch (e) {
       throw _handleError(e);
+    }
+  }
+
+  // ─── Registrar FCM Token ────────────────────────────────
+  Future<void> registrarFcmToken(String token) async {
+    try {
+      await _dio.patch('/usuarios/fcm-token', data: {'token_fcm': token});
+    } on DioException catch (e) {
+      // No lanzar error, solo registrar en logs
+      print('⚠️ Error registrando FCM token: ${_handleError(e)}');
     }
   }
 

@@ -120,6 +120,14 @@ class TallerRepository:
         await self.db.flush()
         return await self.obtener_por_id(taller_id)
 
+    async def actualizar_token_fcm(self, taller_id: int, token_fcm: str) -> bool:
+        """Actualiza el token FCM de un taller."""
+        result = await self.db.execute(
+            update(Taller).where(Taller.id == taller_id).values(token_fcm=token_fcm)
+        )
+        await self.db.flush()
+        return result.rowcount > 0
+
     async def eliminar(self, taller_id: int) -> bool:
         result = await self.db.execute(
             delete(Taller).where(Taller.id == taller_id)

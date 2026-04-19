@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     CLOUDINARY_API_KEY: str
     CLOUDINARY_API_SECRET: str
 
+    #Gemini y firebase
+    GEMINI_API_KEY: str
+    FIREBASE_CREDENTIALS_PATH: str
+
     # App
     FRONTEND_URL: str = "http://localhost:4200"
 

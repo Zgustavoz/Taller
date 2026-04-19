@@ -17,8 +17,10 @@ class IncidenteCrear extends IncidenteEvent {
   final String? textoDireccion;
   final String? descripcion;
   final int? tipoIncidenteId;
+  final int? vehiculoId;
   final int? nivelPrioridad;
   final List<File> archivos;
+  final String? tipoNombre;
 
   const IncidenteCrear({
     required this.latitud,
@@ -26,8 +28,10 @@ class IncidenteCrear extends IncidenteEvent {
     this.textoDireccion,
     this.descripcion,
     this.tipoIncidenteId,
+    this.vehiculoId,
     this.nivelPrioridad,
-    this.archivos = const [],
+    required this.archivos,
+    this.tipoNombre,
   });
 
   @override
@@ -55,4 +59,13 @@ class IncidenteEliminarMultimedia extends IncidenteEvent {
   const IncidenteEliminarMultimedia(this.multimediaId, this.incidenteId);
   @override
   List<Object?> get props => [multimediaId];
+}
+
+class IncidenteCargarTalleresCercanos extends IncidenteEvent {
+  final int incidenteId;
+  final double radioKm;
+  const IncidenteCargarTalleresCercanos(this.incidenteId,
+      {this.radioKm = 15.0});
+  @override
+  List<Object?> get props => [incidenteId];
 }

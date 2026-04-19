@@ -9,6 +9,9 @@ import '../../../incidentes/domain/entities/incidente_entity.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import '../../../notificaciones/presentation/bloc/notificacion_bloc.dart';
+import '../../../notificaciones/presentation/bloc/notificacion_event.dart';
+import '../../../notificaciones/presentation/bloc/notificacion_state.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -17,8 +20,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-            create: (_) => IncidenteBloc()..add(IncidenteCargarMios())),
+        BlocProvider( create: (_) => IncidenteBloc()..add(IncidenteCargarMios())),
+        BlocProvider( create: (_) => NotificacionBloc()..add(NotificacionContarNoLeidas())),
       ],
       child: const _HomeView(),
     );
@@ -63,9 +66,38 @@ class _HomeView extends StatelessWidget {
                 ),
               ),
               actions: [
-                IconButton(
-                  icon: const Icon(Icons.notifications_rounded),
-                  onPressed: () {},
+                BlocBuilder<NotificacionBloc, NotificacionState>(
+                  builder: (context, state) {
+                    final noLeidas = state is NotificacionCargada
+                        ? state.noLeidas
+                        : 0;
+                    return Stack(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.notifications_rounded),
+                          onPressed: () => context.push('/notificaciones'),
+                        ),
+                        if (noLeidas > 0)
+                          Positioned(
+                            right: 8, top: 8,
+                            child: Container(
+                              width: 16, height: 16,
+                              decoration: const BoxDecoration(
+                                  color: Colors.red, shape: BoxShape.circle),
+                              child: Center(
+                                child: Text(
+                                  noLeidas > 9 ? '9+' : '$noLeidas',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold),
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    );
+                  },
                 ),
               ],
               flexibleSpace: FlexibleSpaceBar(

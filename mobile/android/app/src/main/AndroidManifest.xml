@@ -40,6 +40,11 @@
             android:value="2"/>
 
         <!-- MAPBOX TOKEN REMOVED -->
+        
+        <!-- Desactivar Impeller — incompatible con Mapbox en Android 12 -->
+        <meta-data
+            android:name="io.flutter.embedding.android.EnableImpeller"
+            android:value="false" />
 
     </application>
 

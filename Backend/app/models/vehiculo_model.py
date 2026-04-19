@@ -19,3 +19,4 @@ class Vehiculo(Base):
     fecha_creacion = Column(TIMESTAMP, server_default=func.now())
 
     usuario = relationship("Usuario", back_populates="vehiculos")
+    incidentes = relationship("Incidente", back_populates="vehiculo", cascade="all, delete-orphan")

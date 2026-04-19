@@ -1,14 +1,14 @@
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.repositories.incidentes.historial_estado_repository import HistorialEstadoRepository
+from app.repositories.incidentes.historial_repository import HistorialRepository
 from app.schemas.historial_estado_schema import HistorialEstadoResponse
 
 
 class HistorialEstadoService:
 
     def __init__(self, db: AsyncSession):
-        self.repo = HistorialEstadoRepository(db)
+        self.repo = HistorialRepository(db)
 
     async def obtener_por_id(self, historial_id: int) -> HistorialEstadoResponse:
         historial = await self.repo.obtener_por_id(historial_id)

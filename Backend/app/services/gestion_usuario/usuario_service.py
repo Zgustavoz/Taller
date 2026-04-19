@@ -107,3 +107,13 @@ class UsuarioService:
         await self.obtener_por_id(usuario_id)  # valida existencia
         await self.repo.eliminar(usuario_id)
         return {"mensaje": f"Usuario {usuario_id} eliminado correctamente"}
+
+    # ─── Actualizar FCM Token ────────────────────────────────────
+    async def actualizar_fcm_token(self, usuario_id: int, token_fcm: str) -> None:
+        usuario = await self.repo.obtener_por_id(usuario_id)
+        if not usuario:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Usuario no encontrado",
+            )
+        await self.repo.actualizar(usuario_id, UsuarioUpdate(token_fcm=token_fcm))

@@ -108,7 +108,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
                           backgroundImage: _fotoPerfil != null
                               ? FileImage(_fotoPerfil!)
-                              : (usuario.url != null && usuario.url!.isNotEmpty
+                              : (usuario.url != null && usuario.url!.isNotEmpty && !usuario.url!.contains('foto.com')
                                   ? NetworkImage(usuario.url!)
                                   : null),
 

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, status
+from fastapi import APIRouter, Depends, UploadFile, File, status, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.core.security import get_current_user_from_cookie
@@ -76,6 +76,20 @@ async def cambiar_contraseña(
     service = UsuarioService(db)
     return await service.cambiar_password(usuario_id, data)
 
+
+# ─── Registrar token FCM ─────────────────────────────────────────
+@router.patch("/fcm-token", response_model=dict)
+async def registrar_fcm_token(
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    usuario_id = int(current_user["sub"])
+    token_fcm = data.get("token_fcm")  # puede ser None para limpiar
+
+    service = UsuarioService(db)
+    await service.actualizar_fcm_token(usuario_id, token_fcm)
+    return {"mensaje": "Token FCM actualizado correctamente"}
 
 # ─── Cambiar estado ──────────────────────────────────────────────
 @router.patch("/{usuario_id}/estado", response_model=UsuarioResponse)

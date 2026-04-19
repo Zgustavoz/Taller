@@ -1,36 +1,24 @@
 import asyncio
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import AsyncSessionLocal
 from app.core.security import hash_password
 
-from app.models.usuario_model import Usuario
-from app.models.vehiculo_model import Vehiculo
-from app.models.tipo_incidente_model import TipoIncidente
-from app.models.taller_model import Taller
-from app.models.incidente_model import Incidente
-from app.models.incidente_multimedia_model import IncidenteMultimedia
-
 
 async def seed_database():
-    async with AsyncSessionLocal() as db:  # ← async session
+    async with AsyncSessionLocal() as db:
 
         try:
-            print("🌱 Iniciando seed...")
+            print("🌱 Iniciando seed limpio...")
 
             # -------------------------------------------------
-            # LIMPIAR TABLAS (opcional pero recomendado)
+            # LIMPIAR TABLAS
             # -------------------------------------------------
 
             await db.execute(text("""
                 TRUNCATE TABLE
-                incidente_multimedia,
-                incidentes,
-                vehiculos,
+                tecnicos,
                 talleres,
-                usuario,
                 tipos_incidente
                 RESTART IDENTITY CASCADE;
             """))
@@ -38,105 +26,52 @@ async def seed_database():
             print("🧹 Tablas limpiadas")
 
             # -------------------------------------------------
-            # TIPOS DE INCIDENTE
-            # -------------------------------------------------
-
-            tipos = [
-                TipoIncidente(
-                    codigo="bateria",
-                    nombre="Problema de batería",
-                    prioridad_base=3
-                ),
-                TipoIncidente(
-                    codigo="llanta",
-                    nombre="Pinchazo de llanta",
-                    prioridad_base=2
-                ),
-                TipoIncidente(
-                    codigo="choque",
-                    nombre="Accidente leve",
-                    prioridad_base=5
-                ),
-                TipoIncidente(
-                    codigo="motor",
-                    nombre="Problema de motor",
-                    prioridad_base=4
-                ),
-            ]
-
-            db.add_all(tipos)
-            await db.commit()
-
-            print("✅ Tipos creados")
-
-            # Necesario para obtener IDs
-            for t in tipos:
-                await db.refresh(t)
-
-            # -------------------------------------------------
-            # USUARIOS
-            # -------------------------------------------------
-
-            usuario1 = Usuario(
-                nombre="Carlos",
-                apellido="Perez",
-                usuario="carlos123",
-                correo="carlos@test.com",
-                password=hash_password("123456"),
-                telefono="70000001",
-            )
-
-            usuario2 = Usuario(
-                nombre="Maria",
-                apellido="Lopez",
-                usuario="maria123",
-                correo="maria@test.com",
-                password=hash_password("123456"),
-                telefono="70000002",
-            )
-
-            db.add_all([usuario1, usuario2])
-            await db.commit()
-
-            await db.refresh(usuario1)
-            await db.refresh(usuario2)
-
-            print("✅ Usuarios creados")
-
-            # -------------------------------------------------
-            # VEHÍCULOS
-            # -------------------------------------------------
-
-            vehiculo1 = Vehiculo(
-                usuario_id=usuario1.id,
-                marca="Toyota",
-                modelo="Corolla",
-                year=2018,
-                placa="ABC123",
-                color="Blanco",
-                tipo="Sedan"
-            )
-
-            vehiculo2 = Vehiculo(
-                usuario_id=usuario2.id,
-                marca="Nissan",
-                modelo="Frontier",
-                year=2020,
-                placa="XYZ999",
-                color="Rojo",
-                tipo="Pickup"
-            )
-
-            db.add_all([vehiculo1, vehiculo2])
-            await db.commit()
-
-            print("✅ Vehículos creados")
-
-            # -------------------------------------------------
-            # TALLERES (PostGIS POINT)
+            # TIPOS DE INCIDENTE (COMPATIBLE)
             # -------------------------------------------------
 
             await db.execute(text("""
+
+                INSERT INTO tipos_incidente
+                (codigo, nombre, prioridad_base)
+
+                VALUES
+
+                (
+                    'bateria',
+                    'Problema de batería',
+                    3
+                ),
+
+                (
+                    'llanta',
+                    'Pinchazo de llanta',
+                    2
+                ),
+
+                (
+                    'choque',
+                    'Accidente leve',
+                    5
+                ),
+
+                (
+                    'motor',
+                    'Problema de motor',
+                    4
+                );
+
+            """))
+
+            await db.commit()
+
+            print("✅ Tipos de incidente creados")
+
+            # -------------------------------------------------
+            # TALLERES (Nuevo Abasto Santa Cruz)
+            # -------------------------------------------------
+
+            await db.execute(text("""
+
                 INSERT INTO talleres (
                     nombre_propietario,
                     nombre_negocio,
@@ -147,101 +82,198 @@ async def seed_database():
                     ubicacion,
                     especialidades
                 )
+
                 VALUES
+
                 (
-                    'Luis Gómez',
-                    'Taller El Rápido',
+                    'Carlos Rojas',
+                    'Taller Rojas',
                     'taller1@test.com',
-                    :pass1,
-                    '70010001',
-                    'Zona Sur',
-                    ST_GeomFromText('POINT(-68.1193 -16.4897)', 4326),
+                    :p1,
+                    '70000001',
+                    'Zona Nuevo Abasto 1',
+                    ST_GeomFromText('POINT(-63.1870 -17.7885)',4326),
                     ARRAY['bateria','llanta']
                 ),
+
                 (
-                    'Ana Flores',
-                    'Mecánica Total',
+                    'Luis Fernandez',
+                    'AutoServicio Fernandez',
                     'taller2@test.com',
-                    :pass2,
-                    '70010002',
-                    'Centro',
-                    ST_GeomFromText('POINT(-68.1330 -16.5000)', 4326),
+                    :p2,
+                    '70000002',
+                    'Zona Nuevo Abasto 2',
+                    ST_GeomFromText('POINT(-63.1855 -17.7890)',4326),
                     ARRAY['motor','choque']
+                ),
+
+                (
+                    'Miguel Suarez',
+                    'Taller Suarez',
+                    'taller3@test.com',
+                    :p3,
+                    '70000003',
+                    'Zona Nuevo Abasto 3',
+                    ST_GeomFromText('POINT(-63.1882 -17.7875)',4326),
+                    ARRAY['bateria','motor']
+                ),
+
+                (
+                    'Jose Vargas',
+                    'Taller Vargas',
+                    'taller4@test.com',
+                    :p4,
+                    '70000004',
+                    'Zona Nuevo Abasto 4',
+                    ST_GeomFromText('POINT(-63.1878 -17.7902)',4326),
+                    ARRAY['choque']
+                ),
+
+                (
+                    'Andres Lopez',
+                    'Auto Lopez',
+                    'taller5@test.com',
+                    :p5,
+                    '70000005',
+                    'Zona Nuevo Abasto 5',
+                    ST_GeomFromText('POINT(-63.1862 -17.7868)',4326),
+                    ARRAY['llanta']
+                ),
+
+                (
+                    'Raul Mendez',
+                    'Taller Mendez',
+                    'taller6@test.com',
+                    :p6,
+                    '70000006',
+                    'Zona Nuevo Abasto 6',
+                    ST_GeomFromText('POINT(-63.1849 -17.7881)',4326),
+                    ARRAY['motor']
+                ),
+
+                (
+                    'Pedro Castillo',
+                    'Taller Castillo',
+                    'taller7@test.com',
+                    :p7,
+                    '70000007',
+                    'Zona Nuevo Abasto 7',
+                    ST_GeomFromText('POINT(-63.1889 -17.7898)',4326),
+                    ARRAY['bateria','choque']
+                ),
+
+                (
+                    'Jorge Salazar',
+                    'Auto Salazar',
+                    'taller8@test.com',
+                    :p8,
+                    '70000008',
+                    'Zona Nuevo Abasto 8',
+                    ST_GeomFromText('POINT(-63.1838 -17.7879)',4326),
+                    ARRAY['llanta']
+                ),
+
+                (
+                    'Mario Paredes',
+                    'Taller Paredes',
+                    'taller9@test.com',
+                    :p9,
+                    '70000009',
+                    'Zona Nuevo Abasto 9',
+                    ST_GeomFromText('POINT(-63.1873 -17.7862)',4326),
+                    ARRAY['motor']
+                ),
+
+                (
+                    'Ricardo Flores',
+                    'Taller Flores',
+                    'taller10@test.com',
+                    :p10,
+                    '70000010',
+                    'Zona Nuevo Abasto 10',
+                    ST_GeomFromText('POINT(-63.1860 -17.7905)',4326),
+                    ARRAY['bateria','motor','llanta']
                 );
+
             """), {
-                "pass1": hash_password("123456"),
-                "pass2": hash_password("123456"),
+                "p1": hash_password("123456"),
+                "p2": hash_password("123456"),
+                "p3": hash_password("123456"),
+                "p4": hash_password("123456"),
+                "p5": hash_password("123456"),
+                "p6": hash_password("123456"),
+                "p7": hash_password("123456"),
+                "p8": hash_password("123456"),
+                "p9": hash_password("123456"),
+                "p10": hash_password("123456"),
             })
 
             await db.commit()
 
-            print("✅ Talleres creados")
+            print("✅ 10 Talleres creados")
 
             # -------------------------------------------------
-            # INCIDENTES
+            # TECNICOS
             # -------------------------------------------------
 
             await db.execute(text("""
-                INSERT INTO incidentes (
-                    usuario_id,
-                    taller_asignado_id,
-                    tipo_incidente_id,
-                    ubicacion,
-                    texto_direccion,
-                    descripcion,
-                    estado,
-                    nivel_prioridad
+
+                INSERT INTO tecnicos (
+                    taller_id,
+                    nombre_completo,
+                    telefono,
+                    ubicacion_actual,
+                    especialidades,
+                    esta_disponible
                 )
+
                 VALUES
-                (
-                    1,
-                    1,
-                    1,
-                    ST_GeomFromText('POINT(-68.1200 -16.4900)',4326),
-                    'Av. Siempre Viva',
-                    'El auto no enciende',
-                    'pendiente',
-                    3
-                ),
-                (
-                    2,
-                    2,
-                    2,
-                    ST_GeomFromText('POINT(-68.1300 -16.4950)',4326),
-                    'Av. Camacho',
-                    'Llanta pinchada',
-                    'analizando',
-                    2
-                );
+
+                (1,'Juan Perez','71000001',
+                ST_GeomFromText('POINT(-63.1871 -17.7886)',4326),
+                ARRAY['bateria'],true),
+
+                (2,'Luis Gomez','71000002',
+                ST_GeomFromText('POINT(-63.1854 -17.7891)',4326),
+                ARRAY['motor'],true),
+
+                (3,'Carlos Medina','71000003',
+                ST_GeomFromText('POINT(-63.1883 -17.7876)',4326),
+                ARRAY['bateria'],true),
+
+                (4,'Pedro Arias','71000004',
+                ST_GeomFromText('POINT(-63.1879 -17.7903)',4326),
+                ARRAY['choque'],true),
+
+                (5,'Jose Rivas','71000005',
+                ST_GeomFromText('POINT(-63.1863 -17.7869)',4326),
+                ARRAY['llanta'],true),
+
+                (6,'Mario Soto','71000006',
+                ST_GeomFromText('POINT(-63.1850 -17.7882)',4326),
+                ARRAY['motor'],true),
+
+                (7,'Jorge Molina','71000007',
+                ST_GeomFromText('POINT(-63.1888 -17.7899)',4326),
+                ARRAY['choque'],true),
+
+                (8,'Raul Peña','71000008',
+                ST_GeomFromText('POINT(-63.1839 -17.7880)',4326),
+                ARRAY['llanta'],true),
+
+                (9,'Luis Flores','71000009',
+                ST_GeomFromText('POINT(-63.1874 -17.7863)',4326),
+                ARRAY['motor'],true),
+
+                (10,'Ricardo Nuñez','71000010',
+                ST_GeomFromText('POINT(-63.1861 -17.7906)',4326),
+                ARRAY['bateria'],true);
+
             """))
 
             await db.commit()
 
-            print("✅ Incidentes creados")
-
-            # -------------------------------------------------
-            # MULTIMEDIA
-            # -------------------------------------------------
-
-            multimedia = [
-                IncidenteMultimedia(
-                    incidente_id=1,
-                    tipo_archivo="imagen",
-                    url_almacenamiento="https://via.placeholder.com/300.jpg",
-                    tipo_mime="image/jpeg"
-                ),
-                IncidenteMultimedia(
-                    incidente_id=2,
-                    tipo_archivo="audio",
-                    url_almacenamiento="https://example.com/audio.mp3",
-                    tipo_mime="audio/mpeg"
-                ),
-            ]
-
-            db.add_all(multimedia)
-            await db.commit()
-
-            print("✅ Multimedia creada")
+            print("✅ 10 Técnicos creados")
 
             print("🎉 SEED COMPLETADO")
 
