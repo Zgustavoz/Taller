@@ -112,23 +112,29 @@ class HistorialItem extends Equatable {
 
 class AsignacionItem extends Equatable {
   final int tallerId;
+  final String? nombreTaller;   
+  final String? telefonoTaller; 
   final String estado;
   final double? distanciaKm;
   final double? puntuacion;
 
   const AsignacionItem({
     required this.tallerId,
+    this.nombreTaller,
+    this.telefonoTaller,
     required this.estado,
     this.distanciaKm,
     this.puntuacion,
   });
 
-    factory AsignacionItem.fromJson(Map<String, dynamic> json) => AsignacionItem(
-      tallerId: (json['taller_id'] as num?)?.toInt() ?? 0, // ← fix null
-      estado: json['estado'] ?? 'pendiente',
-      distanciaKm: (json['distancia_km'] as num?)?.toDouble(),
-      puntuacion: (json['puntuacion'] as num?)?.toDouble(),
-    );
+  factory AsignacionItem.fromJson(Map<String, dynamic> json) => AsignacionItem(
+        tallerId: (json['taller_id'] as num?)?.toInt() ?? 0,
+        nombreTaller: json['nombre_taller'],    // ← del backend
+        telefonoTaller: json['telefono_taller'],
+        estado: json['estado'] ?? 'pendiente',
+        distanciaKm: (json['distancia_km'] as num?)?.toDouble(),
+        puntuacion: (json['puntuacion'] as num?)?.toDouble(),
+      );
 
   @override
   List<Object?> get props => [tallerId, estado];

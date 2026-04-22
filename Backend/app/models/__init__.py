@@ -9,3 +9,4 @@ from app.models.vehiculo_model import Vehiculo
 from app.models.tecnico_model import Tecnico
 from app.models.historial_estado_model import HistorialEstado
 from app.models.notificacion_model import Notificacion
+from app.models.pago_model import Pago

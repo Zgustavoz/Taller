@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart' hide Position;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart' hide LocationSettings;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -27,6 +27,11 @@ class _MapaScreenState extends State<MapaScreen> {
   TallerCercanoModel? _tallerSeleccionado;
   int _estiloIndex = 0;
 
+  // ── Técnico en tiempo real ────────────────────────────────────
+  MapaTecnico? _tecnico;
+  Timer? _pollingTimer;
+  bool _tecnicoEnRuta = false;
+
   final _estilos = [
     {'nombre': 'Calles', 'url': MapboxStyles.MAPBOX_STREETS},
     {'nombre': 'Satélite', 'url': MapboxStyles.SATELLITE_STREETS},
@@ -40,10 +45,18 @@ class _MapaScreenState extends State<MapaScreen> {
     _inicializar();
   }
 
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> _inicializar() async {
     await _obtenerUbicacion();
     if (widget.incidenteId != null) {
       await _cargarTalleresPorIncidente(widget.incidenteId!);
+      // Iniciar polling del técnico si hay incidente
+      _iniciarPollingTecnico();
     } else if (_latitud != null) {
       await _cargarTalleresPorUbicacion();
     }
@@ -55,19 +68,16 @@ class _MapaScreenState extends State<MapaScreen> {
       if (perm == LocationPermission.denied) {
         perm = await Geolocator.requestPermission();
       }
-      try {
-        final pos = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-        ).timeout(const Duration(seconds: 10));
-        if (mounted) {
-          setState(() {
-            _latitud = pos.latitude;
-            _longitud = pos.longitude;
-            _cargando = false;
-          });
-        }
-      } on TimeoutException {
-        if (mounted) setState(() => _cargando = false);
+      final pos = await Geolocator.getCurrentPosition(
+        locationSettings:
+            const LocationSettings(accuracy: LocationAccuracy.high),
+      ).timeout(const Duration(seconds: 10));
+      if (mounted) {
+        setState(() {
+          _latitud = pos.latitude;
+          _longitud = pos.longitude;
+          _cargando = false;
+        });
       }
     } catch (_) {
       if (mounted) setState(() => _cargando = false);
@@ -82,7 +92,8 @@ class _MapaScreenState extends State<MapaScreen> {
       final lista = res.data['talleres'] as List;
       if (mounted) {
         setState(() {
-          _talleres = lista.map((t) => TallerCercanoModel.fromJson(t)).toList();
+          _talleres =
+              lista.map((t) => TallerCercanoModel.fromJson(t)).toList();
           _cargandoTalleres = false;
         });
       }
@@ -91,28 +102,69 @@ class _MapaScreenState extends State<MapaScreen> {
     }
   }
 
-  // ← CORREGIDO: ahora llama al endpoint /talleres/cercanos
   Future<void> _cargarTalleresPorUbicacion() async {
     if (_latitud == null || _longitud == null) return;
     if (mounted) setState(() => _cargandoTalleres = true);
     try {
       final res = await ApiClient.instance.client.get(
         '/talleres/cercanos',
-        queryParameters: {
-          'lat': _latitud,
-          'lng': _longitud,
-          'radio_km': 15.0,
-        },
+        queryParameters: {'lat': _latitud, 'lng': _longitud, 'radio_km': 15.0},
       );
       final lista = res.data['talleres'] as List;
       if (mounted) {
         setState(() {
-          _talleres = lista.map((t) => TallerCercanoModel.fromJson(t)).toList();
+          _talleres =
+              lista.map((t) => TallerCercanoModel.fromJson(t)).toList();
           _cargandoTalleres = false;
         });
       }
     } catch (_) {
       if (mounted) setState(() => _cargandoTalleres = false);
+    }
+  }
+
+  // ── Polling del técnico cada 5 segundos ───────────────────────
+  void _iniciarPollingTecnico() {
+    // Primera consulta inmediata
+    _consultarUbicacionTecnico();
+    // Luego cada 5 segundos
+    _pollingTimer = Timer.periodic(
+      const Duration(seconds: 5),
+      (_) => _consultarUbicacionTecnico(),
+    );
+  }
+
+  Future<void> _consultarUbicacionTecnico() async {
+    if (widget.incidenteId == null || !mounted) return;
+    try {
+      final res = await ApiClient.instance.client.get(
+        '/tecnicos/ubicacion-incidente/${widget.incidenteId}',
+      );
+      final data = res.data as Map<String, dynamic>;
+      final tieneTecnico = data['tiene_tecnico'] == true;
+      final lat = (data['latitud'] as num?)?.toDouble();
+      final lng = (data['longitud'] as num?)?.toDouble();
+
+      if (!mounted) return;
+
+      if (tieneTecnico && lat != null && lng != null) {
+        setState(() {
+          _tecnicoEnRuta = true;
+          _tecnico = MapaTecnico(
+            id: data['tecnico_id'] ?? 0,
+            nombre: data['nombre'] ?? 'Técnico',
+            latitud: lat,
+            longitud: lng,
+          );
+        });
+      } else {
+        setState(() {
+          _tecnicoEnRuta = tieneTecnico;
+          _tecnico = null;
+        });
+      }
+    } catch (_) {
+      // Silencioso — no romper la UI si falla el polling
     }
   }
 
@@ -125,6 +177,19 @@ class _MapaScreenState extends State<MapaScreen> {
         pitch: 30,
       ),
       MapAnimationOptions(duration: 1000),
+    );
+  }
+
+  // ── Centrar en el técnico ─────────────────────────────────────
+  void _centrarEnTecnico() {
+    if (_mapboxMap == null || _tecnico?.latitud == null) return;
+    _mapboxMap!.flyTo(
+      CameraOptions(
+        center: Point(
+            coordinates: Position(_tecnico!.longitud!, _tecnico!.latitud!)),
+        zoom: 16.0,
+      ),
+      MapAnimationOptions(duration: 800),
     );
   }
 
@@ -169,7 +234,8 @@ class _MapaScreenState extends State<MapaScreen> {
             },
             child: Container(
               margin: const EdgeInsets.only(right: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.black.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(20),
@@ -186,7 +252,7 @@ class _MapaScreenState extends State<MapaScreen> {
       ),
       body: Stack(children: [
 
-        // ── Mapa ─────────────────────────────────────────
+        // ── Mapa con talleres y técnico ───────────────────
         _cargando
             ? Container(
                 color: AppTheme.primary,
@@ -208,33 +274,83 @@ class _MapaScreenState extends State<MapaScreen> {
                 longitudInicial: _longitud,
                 zoom: 14.0,
                 talleres: _marcadoresTalleres,
+                tecnico: _tecnico, // ← técnico en tiempo real
                 onMapCreado: (map) => _mapboxMap = map,
                 onTap: (lat, lng) {},
               ),
 
-        // ── Indicador cargando talleres ───────────────────
-        if (_cargandoTalleres)
+        // ── Badge técnico en ruta ─────────────────────────
+        if (_tecnicoEnRuta)
           Positioned(
             top: 100, left: 0, right: 0,
             child: Center(
+              child: GestureDetector(
+                onTap: _centrarEnTecnico,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF3B82F6),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                          color: const Color(0xFF3B82F6)
+                              .withValues(alpha: 0.4),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4))
+                    ],
+                  ),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    const Text('🚗', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text(
+                      _tecnico != null
+                          ? '${_tecnico!.nombre} en camino'
+                          : 'Técnico asignado',
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(Icons.my_location_rounded,
+                        color: Colors.white, size: 14),
+                  ]),
+                ),
+              ),
+            ),
+          ),
+
+        // ── Indicador cargando talleres ───────────────────
+        if (_cargandoTalleres)
+          Positioned(
+            top: _tecnicoEnRuta ? 150 : 100,
+            left: 0, right: 0,
+            child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: [BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.1),
-                      blurRadius: 8)],
+                  boxShadow: [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 8)
+                  ],
                 ),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  SizedBox(
-                    width: 14, height: 14,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: AppTheme.accent),
-                  ),
-                  SizedBox(width: 8),
-                  Text('Buscando talleres...', style: TextStyle(fontSize: 12)),
-                ]),
+                child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SizedBox(
+                        width: 14, height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppTheme.accent),
+                      ),
+                      SizedBox(width: 8),
+                      Text('Buscando talleres...',
+                          style: TextStyle(fontSize: 12)),
+                    ]),
               ),
             ),
           ),
@@ -245,11 +361,14 @@ class _MapaScreenState extends State<MapaScreen> {
           child: Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-              boxShadow: [BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.15),
-                  blurRadius: 20,
-                  offset: const Offset(0, -4))],
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(28)),
+              boxShadow: [
+                BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, -4))
+              ],
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -290,7 +409,8 @@ class _MapaScreenState extends State<MapaScreen> {
                                 ? '${_latitud!.toStringAsFixed(4)}, ${_longitud!.toStringAsFixed(4)}'
                                 : 'Obteniendo...',
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey.shade500),
+                                fontSize: 12,
+                                color: Colors.grey.shade500),
                           ),
                         ],
                       ),
@@ -299,7 +419,8 @@ class _MapaScreenState extends State<MapaScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF10B981).withValues(alpha: 0.1),
+                        color:
+                            const Color(0xFF10B981).withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Text(
@@ -320,7 +441,8 @@ class _MapaScreenState extends State<MapaScreen> {
                     height: 120,
                     child: ListView.builder(
                       scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 16),
                       itemCount: _talleres.length,
                       itemBuilder: (_, i) {
                         final t = _talleres[i];
@@ -348,7 +470,8 @@ class _MapaScreenState extends State<MapaScreen> {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: sel
-                                  ? AppTheme.accent.withValues(alpha: 0.08)
+                                  ? AppTheme.accent
+                                      .withValues(alpha: 0.08)
                                   : Colors.white,
                               borderRadius: BorderRadius.circular(14),
                               border: Border.all(
@@ -363,7 +486,9 @@ class _MapaScreenState extends State<MapaScreen> {
                               children: [
                                 Row(children: [
                                   Icon(Icons.build_rounded,
-                                      color: sel ? AppTheme.accent : Colors.grey,
+                                      color: sel
+                                          ? AppTheme.accent
+                                          : Colors.grey,
                                       size: 14),
                                   const SizedBox(width: 6),
                                   Expanded(
@@ -383,10 +508,13 @@ class _MapaScreenState extends State<MapaScreen> {
                                 const SizedBox(height: 6),
                                 Row(children: [
                                   const Icon(Icons.star_rounded,
-                                      size: 12, color: Color(0xFFF59E0B)),
+                                      size: 12,
+                                      color: Color(0xFFF59E0B)),
                                   const SizedBox(width: 3),
-                                  Text(t.calificacion.toStringAsFixed(1),
-                                      style: const TextStyle(fontSize: 11)),
+                                  Text(
+                                      t.calificacion.toStringAsFixed(1),
+                                      style: const TextStyle(
+                                          fontSize: 11)),
                                   const Spacer(),
                                   Container(
                                     width: 8, height: 8,
@@ -398,7 +526,9 @@ class _MapaScreenState extends State<MapaScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    t.estaDisponible ? 'Libre' : 'Ocupado',
+                                    t.estaDisponible
+                                        ? 'Libre'
+                                        : 'Ocupado',
                                     style: TextStyle(
                                         fontSize: 10,
                                         color: t.estaDisponible
@@ -426,7 +556,8 @@ class _MapaScreenState extends State<MapaScreen> {
                                     Text(t.telefono!,
                                         style: TextStyle(
                                             fontSize: 10,
-                                            color: Colors.grey.shade500)),
+                                            color:
+                                                Colors.grey.shade500)),
                                   ]),
                                 ],
                               ],
@@ -456,11 +587,21 @@ class _MapaScreenState extends State<MapaScreen> {
           right: 16,
           bottom: _talleres.isEmpty ? 140 : 210,
           child: Column(children: [
+            // Botón centrar en técnico (solo si está en ruta)
+            if (_tecnico != null) ...[
+              _BtnFlotante(
+                icono: Icons.directions_car_rounded,
+                color: const Color(0xFF3B82F6),
+                onTap: _centrarEnTecnico,
+              ),
+              const SizedBox(height: 10),
+            ],
             _BtnFlotante(
               icono: _siguiendo
                   ? Icons.gps_fixed_rounded
                   : Icons.gps_not_fixed_rounded,
-              color: _siguiendo ? AppTheme.accent : Colors.grey.shade600,
+              color:
+                  _siguiendo ? AppTheme.accent : Colors.grey.shade600,
               onTap: () {
                 setState(() => _siguiendo = true);
                 _centrar();
@@ -515,10 +656,12 @@ class _BtnFlotante extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.15),
-              blurRadius: 8,
-              offset: const Offset(0, 2))],
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.15),
+                blurRadius: 8,
+                offset: const Offset(0, 2))
+          ],
         ),
         child: Icon(icono, color: color, size: 22),
       ),

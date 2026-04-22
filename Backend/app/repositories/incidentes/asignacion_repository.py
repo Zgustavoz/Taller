@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from typing import Optional
 from app.models.asignacion_taller_model import AsignacionTaller
+from app.models.taller_model import Taller
 
 
 class AsignacionRepository:
@@ -40,17 +41,27 @@ class AsignacionRepository:
         )
         return result.scalar_one_or_none()
 
-    async def listar_por_incidente(self, incidente_id: int) -> list[AsignacionTaller]:
+    # ─── Listar con nombre del taller incluido ────────────────
+    async def listar_por_incidente(self, incidente_id: int) -> list[dict]:
         result = await self.db.execute(
-            select(AsignacionTaller)
+            select(
+                AsignacionTaller.taller_id,
+                AsignacionTaller.estado_respuesta,
+                AsignacionTaller.distancia_km,
+                AsignacionTaller.puntuacion_asignacion,
+                Taller.nombre_negocio,
+                Taller.telefono,
+                Taller.especialidades,
+            )
+            .join(Taller, Taller.id == AsignacionTaller.taller_id)
             .where(AsignacionTaller.incidente_id == incidente_id)
             .order_by(AsignacionTaller.puntuacion_asignacion.desc())
         )
-        return result.scalars().all()
+        rows = result.mappings().all()
+        return [dict(r) for r in rows]
 
     async def marcar_aceptado(self, incidente_id: int, taller_id: int) -> None:
         from datetime import datetime, timezone
-        # Aceptar el taller que respondió
         await self.db.execute(
             update(AsignacionTaller)
             .where(AsignacionTaller.incidente_id == incidente_id)
@@ -60,7 +71,6 @@ class AsignacionRepository:
                 respondido_at=datetime.now(timezone.utc),
             )
         )
-        # Descartar los demás
         await self.db.execute(
             update(AsignacionTaller)
             .where(AsignacionTaller.incidente_id == incidente_id)

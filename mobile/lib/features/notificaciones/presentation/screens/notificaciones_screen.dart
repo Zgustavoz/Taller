@@ -117,7 +117,7 @@ class _NotificacionesView extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           vertical: 8),
                       itemCount: state.notificaciones.length,
-                      separatorBuilder: (_, __) =>
+                      separatorBuilder: (_, _) =>
                           const Divider(height: 1, indent: 72),
                       itemBuilder: (_, i) => _NotificacionItem(
                         notif: state.notificaciones[i],

@@ -1,9 +1,8 @@
 package com.example.mobile
 
-import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.android.FlutterActivityLaunchConfigs.BackgroundMode
+import io.flutter.embedding.android.FlutterFragmentActivity
 
-class MainActivity : FlutterActivity() {
-    // Forzar renderizado OpenGL en lugar de Vulkan/Impeller
-    override fun getRenderMode() = io.flutter.embedding.android.RenderMode.surface
-}
+class MainActivity : FlutterFragmentActivity()
+
+
+

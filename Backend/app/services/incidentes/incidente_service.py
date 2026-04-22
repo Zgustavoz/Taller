@@ -360,12 +360,16 @@ class IncidenteService:
             }
             for h in historial
         ]
+        # ← Ahora incluye nombre_negocio del taller
         data["asignaciones"] = [
             {
-                "taller_id": a.taller_id,
-                "estado": a.estado_respuesta,
-                "distancia_km": float(a.distancia_km) if a.distancia_km else None,
-                "puntuacion": float(a.puntuacion_asignacion) if a.puntuacion_asignacion else None,
+                "taller_id": a["taller_id"],
+                "nombre_taller": a["nombre_negocio"],
+                "telefono_taller": a["telefono"],
+                "especialidades": a["especialidades"],
+                "estado": a["estado_respuesta"],
+                "distancia_km": float(a["distancia_km"]) if a["distancia_km"] else None,
+                "puntuacion": float(a["puntuacion_asignacion"]) if a["puntuacion_asignacion"] else None,
             }
             for a in asignaciones
         ]

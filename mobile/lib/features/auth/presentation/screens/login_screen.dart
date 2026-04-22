@@ -82,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: const Icon(
-                          Icons.shopping_cart_rounded,
+                          Icons.emergency_rounded,
                           color: Colors.white,
                           size: 48,
                         ),

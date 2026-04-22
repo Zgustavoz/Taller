@@ -29,6 +29,9 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str
     FIREBASE_CREDENTIALS_PATH: str
 
+    #stripe
+    STRIPE_SECRET_KEY: str
+
     # App
     FRONTEND_URL: str = "http://localhost:4200"
 

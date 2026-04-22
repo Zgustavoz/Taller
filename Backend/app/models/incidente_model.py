@@ -33,7 +33,7 @@ class Incidente(Base):
 
     tiempo_estimado_llegada_min = Column(SmallInteger, nullable=True)
 
-    creado_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    creado_at = Column(TIMESTAMP(timezone=True), server_default=func.now()) # type: ignore
     resuelto_at = Column(TIMESTAMP(timezone=True), nullable=True)
 
     # Relaciones
@@ -46,3 +46,4 @@ class Incidente(Base):
     tecnico = relationship("Tecnico", back_populates="incidentes", foreign_keys=[tecnico_asignado_id])
     vehiculo = relationship("Vehiculo", back_populates="incidentes")
     notificaciones = relationship("Notificacion", back_populates="incidente", cascade="all, delete")
+    pago = relationship("Pago", back_populates="incidente", uselist=False)

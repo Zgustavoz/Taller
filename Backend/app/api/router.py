@@ -10,7 +10,7 @@ from app.api.incidentes.historial_estado_route import router as historial_estado
 from app.api.gestion_usuario.vehiculo_route import router as vehiculo_router
 from app.api.gestion_usuario.tecnico.tecnico_route import router as tecnico_router
 from app.api.notificaciones.notificacion_route import router as notificacion_router
-
+from app.api.pagos.pago_route import router as pago_router
 
 api_router = APIRouter(prefix="/api")
 
@@ -25,3 +25,4 @@ api_router.include_router(incidente_router)
 api_router.include_router(historial_estados_router)
 api_router.include_router(multimedia_router)
 api_router.include_router(notificacion_router)
+api_router.include_router(pago_router)
