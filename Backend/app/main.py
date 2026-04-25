@@ -5,6 +5,7 @@ from sqlalchemy import text
 from app.core.db import engine, Base
 from app.core.config import settings
 from app.api.router import api_router
+from app.core.schema_bootstrap import repair_schema
 from app.services.notificaciones.firebase_service import inicializar_firebase
 
 # Importar modelos para que SQLAlchemy los registre
@@ -19,6 +20,7 @@ async def lifespan(app: FastAPI):
         # Requerido para la columna GEOMETRY(Point, 4326) de talleres.
         await conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
         await conn.run_sync(Base.metadata.create_all)
+        await repair_schema(conn)
     inicializar_firebase()
     yield
     # Cerrar conexiones al apagar

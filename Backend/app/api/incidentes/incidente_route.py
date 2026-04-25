@@ -85,6 +85,21 @@ async def aceptar_incidente(
     )
 
 
+@router.post("/{incidente_id}/rechazar")
+async def rechazar_incidente(
+    incidente_id: int,
+    taller_id: int,
+    notas: Optional[str] = None,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(get_current_user_from_cookie),
+):
+    return await IncidenteService(db).taller_rechaza(
+        incidente_id=incidente_id,
+        taller_id=taller_id,
+        notas=notas,
+    )
+
+
 # ── Cambiar estado ─────────────────────────────────────────────
 @router.patch("/{incidente_id}/estado")
 async def cambiar_estado(
