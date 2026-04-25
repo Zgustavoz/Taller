@@ -72,6 +72,7 @@ class IncidenteRepository:
         taller_id: int | None = None,
         tecnico_id: int | None = None,
         tiempo_estimado: int | None = None,
+        resuelto_at = None,
     ) -> Optional[Incidente]:
         valores: dict = {"estado": estado}
         if taller_id is not None:
@@ -80,6 +81,8 @@ class IncidenteRepository:
             valores["tecnico_asignado_id"] = tecnico_id
         if tiempo_estimado is not None:
             valores["tiempo_estimado_llegada_min"] = tiempo_estimado
+        if resuelto_at is not None:
+            valores["resuelto_at"] = resuelto_at
         await self.db.execute(
             update(Incidente).where(Incidente.id == incidente_id).values(**valores)
         )

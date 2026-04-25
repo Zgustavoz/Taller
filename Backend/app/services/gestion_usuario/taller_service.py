@@ -13,6 +13,7 @@ from app.models.incidente_model import Incidente
 from app.models.tipo_incidente_model import TipoIncidente
 from app.models.usuario_model import Usuario
 from app.models.vehiculo_model import Vehiculo
+from app.models.asignacion_taller_model import AsignacionTaller
 
 
 class TallerService:
@@ -78,22 +79,24 @@ class TallerService:
         taller_id: int,
         estado: str | None = None,
     ) -> list[SolicitudPanelMinimaResponse]:
-        # Sin tabla de asignaciones aún, usamos incidentes del taller autenticado.
         query = (
             select(
                 Incidente.id,
                 Incidente.estado,
                 Incidente.nivel_prioridad,
                 TipoIncidente.nombre.label("tipo_incidente_nombre"),
+                AsignacionTaller.distancia_km,
+                AsignacionTaller.puntuacion_asignacion.label("score"),
                 Incidente.creado_at,
                 Usuario.nombre.label("usuario_nombre"),
                 Vehiculo.placa.label("vehiculo_placa"),
                 Incidente.ficha_resumen.label("resumen"),
             )
+            .join(AsignacionTaller, AsignacionTaller.incidente_id == Incidente.id)
             .join(Usuario, Usuario.id == Incidente.usuario_id)
             .outerjoin(Vehiculo, Vehiculo.id == Incidente.vehiculo_id)
             .outerjoin(TipoIncidente, TipoIncidente.id == Incidente.tipo_incidente_id)
-            .where(Incidente.taller_asignado_id == taller_id)
+            .where(AsignacionTaller.taller_id == taller_id)
             .order_by(Incidente.creado_at.desc())
         )
 
@@ -109,8 +112,8 @@ class TallerService:
                 estado=row["estado"],
                 nivel_prioridad=row["nivel_prioridad"],
                 tipo_incidente_nombre=row["tipo_incidente_nombre"],
-                distancia_km=None,
-                score=None,
+                distancia_km=row["distancia_km"],
+                score=row["score"],
                 creado_at=row["creado_at"],
                 usuario_nombre=row["usuario_nombre"],
                 vehiculo_placa=row["vehiculo_placa"],
