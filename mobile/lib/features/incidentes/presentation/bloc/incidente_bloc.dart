@@ -52,7 +52,9 @@ class IncidenteBloc extends Bloc<IncidenteEvent, IncidenteState> {
 
   Future<void> _onDetalle(
       IncidenteCargarDetalle e, Emitter emit) async {
-    emit(IncidenteLoading());
+      if (state is! IncidenteDetalleCargado) {
+        emit(IncidenteLoading());
+      }
     try {
       final incidente = await _repo.obtener(e.id);
       final talleres = await _repo.talleresCercanos(e.id, 15.0);

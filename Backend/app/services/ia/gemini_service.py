@@ -50,8 +50,10 @@ async def analizar_incidente(
     """Analiza el incidente con Gemini. Devuelve JSON estructurado."""
 
     texto_transcripciones = "\n".join(transcripciones_audio or [])
-    print(f"[Gemini] urls_audios recibidas: {urls_audios}")
-    print(f"[Gemini] transcripciones_audio: {texto_transcripciones!r}")
+    print("\n" + "="*60)
+    print(f"🎧 [Gemini] urls_audios recibidas: {urls_audios}")
+    print(f"📝 [Gemini] transcripciones_audio: {texto_transcripciones!r}")
+    print("="*60 + "\n")
 
     prompt = f"""Eres un sistema experto en diagnóstico de emergencias vehiculares.
 Analiza la información del incidente y clasifícalo con precisión.

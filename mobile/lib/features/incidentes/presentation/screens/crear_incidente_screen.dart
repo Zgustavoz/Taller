@@ -19,6 +19,9 @@ import '../bloc/incidente_bloc.dart';
 import '../bloc/incidente_event.dart';
 import '../bloc/incidente_state.dart';
 import '../../data/models/taller_cercano_model.dart';
+import '../widgets/crear/pantalla_analizando.dart';
+import '../widgets/crear/media_sheet.dart';
+import '../widgets/shared/widgets_compartidos.dart';
 
 class CrearIncidenteScreen extends StatefulWidget {
   const CrearIncidenteScreen({super.key});
@@ -38,17 +41,13 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
   double? _longitud;
   int? _vehiculoSeleccionado;
   String? _tipoSeleccionado;
-
   final List<File> _archivos = [];
   bool _grabando = false;
   bool _cargandoUbicacion = true;
-
   List<VehiculoModel> _vehiculos = [];
   bool _cargandoVehiculos = true;
-
   List<MapaTaller> _talleres = [];
 
-  // Tipos de problemas disponibles
   final _tiposProblema = {
     'flat_tire': 'Llanta pinchada',
     'battery_dead': 'Batería descargada',
@@ -70,27 +69,33 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
 
   Future<void> _cargarVehiculos() async {
     try {
-      final ds = VehiculoDatasource();
-      final lista = await ds.misVehiculos();
-      if (mounted) {
-        setState(() {
-          _vehiculos = lista;
-          _cargandoVehiculos = false;
-        });
-      }
+      final lista = await VehiculoDatasource().misVehiculos();
+      if (mounted) setState(() { _vehiculos = lista; _cargandoVehiculos = false; });
     } catch (_) {
       if (mounted) setState(() => _cargandoVehiculos = false);
     }
   }
 
+  List<String> _especialidadesParaTipo(String tipo) {
+    const mapa = {
+      'flat_tire': ['llanta'],
+      'battery_dead': ['bateria', 'electrico'],
+      'engine_overheat': ['motor'],
+      'minor_accident': ['choque', 'carroceria'],
+      'electrical': ['electrico', 'bateria'],
+      'lost_keys': ['cerrajeria', 'general'],
+      'fuel_empty': ['general'],
+      'other': <String>[],
+    };
+    return mapa[tipo] ?? [];
+  }
+
   Future<void> _cargarTalleres() async {
     if (_latitud == null || _longitud == null) return;
     try {
-      // Si no hay tipo seleccionado, no filtrar (mostrar todos)
       final especialidades = _tipoSeleccionado != null
           ? _especialidadesParaTipo(_tipoSeleccionado!)
-          : [];
-
+          : <String>[];
       final res = await ApiClient.instance.client.get(
         '/talleres/cercanos',
         queryParameters: {
@@ -103,7 +108,8 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
       final lista = res.data['talleres'] as List;
       if (mounted) {
         setState(() {
-          _talleres = lista.map((t) => TallerCercanoModel.fromJson(t)).toList()
+          _talleres = lista
+              .map((t) => TallerCercanoModel.fromJson(t))
               .where((t) => t.latitud != null && t.longitud != null)
               .map((t) => MapaTaller(
                     id: t.id,
@@ -115,31 +121,13 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
               .toList();
         });
       }
-    } catch (_) {
-      // Falla silenciosa si no se puede cargar talleres
-    }
-  }
-
-  List<String> _especialidadesParaTipo(String tipo) {
-    const Map<String, List<String>> mapa = {
-      'flat_tire': ['llanta'],
-      'battery_dead': ['bateria', 'electrico'],
-      'engine_overheat': ['motor'],
-      'minor_accident': ['choque', 'carroceria'],
-      'electrical': ['electrico', 'bateria'],
-      'lost_keys': ['cerrajeria', 'general'],
-      'fuel_empty': ['general'],
-      'other': [],
-    };
-    return mapa[tipo] ?? <String>[];
+    } catch (_) {}
   }
 
   Future<void> _obtenerUbicacion() async {
     try {
       var perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
+      if (perm == LocationPermission.denied) perm = await Geolocator.requestPermission();
       if (perm == LocationPermission.deniedForever) {
         if (mounted) setState(() => _cargandoUbicacion = false);
         return;
@@ -148,11 +136,7 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
         locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
       );
       if (mounted) {
-        setState(() {
-          _latitud = pos.latitude;
-          _longitud = pos.longitude;
-          _cargandoUbicacion = false;
-        });
+        setState(() { _latitud = pos.latitude; _longitud = pos.longitude; _cargandoUbicacion = false; });
         await Future.delayed(const Duration(milliseconds: 500));
         _moverCamara();
         _cargarTalleres();
@@ -165,60 +149,38 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
   void _moverCamara() {
     if (_mapboxMap == null || _latitud == null) return;
     _mapboxMap!.flyTo(
-      CameraOptions(
-        center: Point(coordinates: Position(_longitud!, _latitud!)),
-        zoom: 15.0,
-      ),
+      CameraOptions(center: Point(coordinates: Position(_longitud!, _latitud!)), zoom: 15.0),
       MapAnimationOptions(duration: 800),
     );
   }
 
   Future<void> _tomarFoto() async {
-    final foto = await _picker.pickImage(
-        source: img_picker.ImageSource.camera, imageQuality: 85);
+    final foto = await _picker.pickImage(source: img_picker.ImageSource.camera, imageQuality: 85);
     if (foto != null) setState(() => _archivos.add(File(foto.path)));
   }
 
   Future<void> _pickImagenes() async {
     final imgs = await _picker.pickMultiImage(imageQuality: 80);
-    if (imgs.isNotEmpty) {
-      setState(() => _archivos.addAll(imgs.map((x) => File(x.path))));
-    }
+    if (imgs.isNotEmpty) setState(() => _archivos.addAll(imgs.map((x) => File(x.path))));
   }
 
   Future<void> _pickAudio() async {
     final result = await FilePicker.pickFiles(type: FileType.audio);
-    if (result?.files.single.path != null) {
-      setState(() => _archivos.add(File(result!.files.single.path!)));
-    }
+    if (result?.files.single.path != null) setState(() => _archivos.add(File(result!.files.single.path!)));
   }
 
   Future<void> _toggleGrabar() async {
     FocusScope.of(context).unfocus();
-
     if (_grabando) {
       final path = await _recorder.stop();
       if (path != null) {
         final archivo = File(path);
-        if (await archivo.exists()) {
-          setState(() => _archivos.add(archivo));
-        } else {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Error: no se pudo guardar el audio')),
-            );
-          }
-        }
+        if (await archivo.exists()) setState(() => _archivos.add(archivo));
       }
       setState(() => _grabando = false);
     } else {
-      final tienePermiso = await _recorder.hasPermission();
-      if (!tienePermiso) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Permiso de micrófono requerido')),
-          );
-        }
+      if (!await _recorder.hasPermission()) {
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permiso de micrófono requerido')));
         return;
       }
       final dir = await getApplicationDocumentsDirectory();
@@ -231,9 +193,8 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
   void _mostrarOpcionesMedia() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (_) => _MediaSheet(
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => MediaSheet(
         onTomarFoto: () { Navigator.pop(context); _tomarFoto(); },
         onGaleria: () { Navigator.pop(context); _pickImagenes(); },
         onPickAudio: () { Navigator.pop(context); _pickAudio(); },
@@ -244,35 +205,29 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
   }
 
   void _enviar() {
-    if (_formKey.currentState!.validate()) {
-      if (_latitud == null || _longitud == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Activa el GPS para continuar')),
-        );
-        return;
-      }
-      final descripcionCompleta = _tipoSeleccionado != null
-          ? 'Tipo de problema reportado: ${_tiposProblema[_tipoSeleccionado]}.\n\n${_descripcionCtrl.text.trim()}'
-          : _descripcionCtrl.text.trim();
-
-      context.read<IncidenteBloc>().add(IncidenteCrear(
-            latitud: _latitud!,
-            longitud: _longitud!,
-            textoDireccion: _direccionCtrl.text.trim().isEmpty
-                ? null
-                : _direccionCtrl.text.trim(),
-            descripcion: descripcionCompleta.isEmpty ? null : descripcionCompleta,
-            tipoIncidenteId: null, // La IA lo determina automáticamente
-            vehiculoId: _vehiculoSeleccionado,
-            nivelPrioridad: null, // La IA lo determina automáticamente
-            archivos: List.from(_archivos),
-          ));
+    if (!_formKey.currentState!.validate()) return;
+    if (_latitud == null || _longitud == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Activa el GPS para continuar')));
+      return;
     }
+    final descripcionCompleta = _tipoSeleccionado != null
+        ? 'Tipo de problema reportado: ${_tiposProblema[_tipoSeleccionado]}.\n\n${_descripcionCtrl.text.trim()}'
+        : _descripcionCtrl.text.trim();
+
+    context.read<IncidenteBloc>().add(IncidenteCrear(
+          latitud: _latitud!,
+          longitud: _longitud!,
+          textoDireccion: _direccionCtrl.text.trim().isEmpty ? null : _direccionCtrl.text.trim(),
+          descripcion: descripcionCompleta.isEmpty ? null : descripcionCompleta,
+          tipoIncidenteId: null,
+          vehiculoId: _vehiculoSeleccionado,
+          nivelPrioridad: null,
+          archivos: List.from(_archivos),
+        ));
   }
 
   @override
   void dispose() {
-    // _mapboxMap?.dispose(); // liberar mapa al salir
     _descripcionCtrl.dispose();
     _direccionCtrl.dispose();
     _recorder.dispose();
@@ -285,8 +240,7 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
       listener: (context, state) {
         if (state is IncidenteCreadoExito) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(
-                '✅ Emergencia reportada · ${state.talleresNotificados} talleres notificados'),
+            content: Text('✅ Emergencia reportada · ${state.talleresNotificados} talleres notificados'),
             backgroundColor: Colors.green.shade600,
             behavior: SnackBarBehavior.floating,
             duration: const Duration(seconds: 4),
@@ -304,17 +258,14 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
       },
       child: BlocBuilder<IncidenteBloc, IncidenteState>(
         builder: (context, state) {
-          if (state is IncidenteAnalizando) {
-            return _PantallaAnalizando(mensaje: state.mensaje);
-          }
+          if (state is IncidenteAnalizando) return PantallaAnalizando(mensaje: state.mensaje);
 
           return Scaffold(
             backgroundColor: AppTheme.background,
             appBar: AppBar(
               backgroundColor: AppTheme.primary,
               foregroundColor: Colors.white,
-              title: const Text('Reportar Emergencia',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
+              title: const Text('Reportar Emergencia', style: TextStyle(fontWeight: FontWeight.bold)),
             ),
             body: Form(
               key: _formKey,
@@ -323,29 +274,23 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                 children: [
 
                   // ── Tipo de problema ──────────────────────
-                  _Seccion(icono: Icons.warning_rounded, titulo: 'Tipo de problema'),
+                  Seccion(icono: Icons.warning_rounded, titulo: 'Tipo de problema'),
                   const SizedBox(height: 10),
                   DropdownButtonFormField<String>(
-                    initialValue: _tipoSeleccionado,
+                    value: _tipoSeleccionado,
                     decoration: InputDecoration(
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     ),
                     hint: const Text('Selecciona el tipo de problema'),
-                    items: _tiposProblema.entries.map((entry) => DropdownMenuItem(
-                      value: entry.key,
-                      child: Text(entry.value),
-                    )).toList(),
-                    onChanged: (value) {
-                      setState(() => _tipoSeleccionado = value);
-                      _cargarTalleres();
-                    },
-                    validator: (value) => value == null ? 'Selecciona un tipo de problema' : null,
+                    items: _tiposProblema.entries.map((e) => DropdownMenuItem(value: e.key, child: Text(e.value))).toList(),
+                    onChanged: (v) { setState(() => _tipoSeleccionado = v); _cargarTalleres(); },
+                    validator: (v) => v == null ? 'Selecciona un tipo de problema' : null,
                   ),
                   const SizedBox(height: 24),
 
                   // ── Mapa ──────────────────────────────────
-                  _Seccion(icono: Icons.map_rounded, titulo: 'Ubicación'),
+                  Seccion(icono: Icons.map_rounded, titulo: 'Ubicación'),
                   const SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
@@ -354,81 +299,54 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                       child: _cargandoUbicacion
                           ? Container(
                               color: Colors.grey.shade200,
-                              child: const Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    CircularProgressIndicator(color: AppTheme.accent),
-                                    SizedBox(height: 12),
-                                    Text('Obteniendo ubicación...',
-                                        style: TextStyle(color: Colors.grey)),
-                                  ],
-                                ),
-                              ),
+                              child: const Center(child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  CircularProgressIndicator(color: AppTheme.accent),
+                                  SizedBox(height: 12),
+                                  Text('Obteniendo ubicación...', style: TextStyle(color: Colors.grey)),
+                                ],
+                              )),
                             )
-                            :Stack(
-                              children: [
-                                MapaWidgetEstatico(
-                                  key: const ValueKey('mapa_incidente'),
-                                  latitudInicial: _latitud,
-                                  longitudInicial: _longitud,
-                                  zoom: 15.0,
-                                  talleres: _talleres,
-                                  onMapCreado: (map) => _mapboxMap = map,
-                                  onTap: (lat, lng) {
-                                    setState(() {
-                                      _latitud = lat;
-                                      _longitud = lng;
-                                    });
-                                  },
-                                ),
-                                Positioned(
-                                  top: 10, right: 10,
-                                  child: GestureDetector(
-                                    onTap: () => context.push('/mapa'),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white,
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                              color: Colors.black.withValues(alpha: 0.15),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2))
-                                        ],
-                                      ),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.fullscreen_rounded,
-                                              size: 16, color: AppTheme.accent),
-                                          SizedBox(width: 4),
-                                          Text('Ver mapa',
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: AppTheme.accent,
-                                                  fontWeight: FontWeight.w600)),
-                                        ],
-                                      ),
+                          : Stack(children: [
+                              MapaWidgetEstatico(
+                                key: const ValueKey('mapa_incidente'),
+                                latitudInicial: _latitud,
+                                longitudInicial: _longitud,
+                                zoom: 15.0,
+                                talleres: _talleres,
+                                onMapCreado: (map) => _mapboxMap = map,
+                                onTap: (lat, lng) => setState(() { _latitud = lat; _longitud = lng; }),
+                              ),
+                              Positioned(
+                                top: 10, right: 10,
+                                child: GestureDetector(
+                                  onTap: () => context.push('/mapa'),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.15), blurRadius: 8, offset: const Offset(0, 2))],
                                     ),
+                                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                                      Icon(Icons.fullscreen_rounded, size: 16, color: AppTheme.accent),
+                                      SizedBox(width: 4),
+                                      Text('Ver mapa', style: TextStyle(fontSize: 12, color: AppTheme.accent, fontWeight: FontWeight.w600)),
+                                    ]),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ]),
                     ),
                   ),
                   if (_latitud != null) ...[
                     const SizedBox(height: 8),
                     Row(children: [
-                      const Icon(Icons.gps_fixed_rounded,
-                          size: 14, color: AppTheme.accent),
+                      const Icon(Icons.gps_fixed_rounded, size: 14, color: AppTheme.accent),
                       const SizedBox(width: 6),
-                      Text(
-                        '${_latitud!.toStringAsFixed(5)}, ${_longitud!.toStringAsFixed(5)}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
+                      Text('${_latitud!.toStringAsFixed(5)}, ${_longitud!.toStringAsFixed(5)}',
+                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                     ]),
                   ],
                   const SizedBox(height: 10),
@@ -442,11 +360,10 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                   const SizedBox(height: 24),
 
                   // ── Vehículo ──────────────────────────────────
-                  _Seccion(icono: Icons.directions_car_rounded, titulo: 'Vehículo'),
+                  Seccion(icono: Icons.directions_car_rounded, titulo: 'Vehículo'),
                   const SizedBox(height: 10),
                   _cargandoVehiculos
-                      ? const Center(
-                          child: CircularProgressIndicator(color: AppTheme.accent))
+                      ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
                       : _vehiculos.isEmpty
                           ? Container(
                               padding: const EdgeInsets.all(14),
@@ -456,90 +373,53 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                                 border: Border.all(color: Colors.orange.shade200),
                               ),
                               child: Row(children: [
-                                Icon(Icons.info_outline_rounded,
-                                    color: Colors.orange.shade400, size: 18),
+                                Icon(Icons.info_outline_rounded, color: Colors.orange.shade400, size: 18),
                                 const SizedBox(width: 10),
-                                const Expanded(
-                                  child: Text(
-                                    'No tienes vehículos registrados. Puedes reportar sin seleccionar uno.',
-                                    style: TextStyle(fontSize: 12, color: Colors.orange),
-                                  ),
-                                ),
+                                const Expanded(child: Text('No tienes vehículos registrados.',
+                                    style: TextStyle(fontSize: 12, color: Colors.orange))),
                               ]),
                             )
                           : Column(
                               children: _vehiculos.map((v) {
                                 final sel = _vehiculoSeleccionado == v.id;
                                 return GestureDetector(
-                                  onTap: () => setState(() =>
-                                      _vehiculoSeleccionado = sel ? null : v.id),
+                                  onTap: () => setState(() => _vehiculoSeleccionado = sel ? null : v.id),
                                   child: AnimatedContainer(
                                     duration: const Duration(milliseconds: 200),
                                     margin: const EdgeInsets.only(bottom: 8),
                                     padding: const EdgeInsets.all(14),
                                     decoration: BoxDecoration(
-                                      color: sel
-                                          ? AppTheme.accent.withValues(alpha: 0.08)
-                                          : Colors.white,
+                                      color: sel ? AppTheme.accent.withValues(alpha: 0.08) : Colors.white,
                                       borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(
-                                        color: sel
-                                            ? AppTheme.accent
-                                            : Colors.grey.shade200,
-                                        width: sel ? 2 : 1,
-                                      ),
+                                      border: Border.all(color: sel ? AppTheme.accent : Colors.grey.shade200, width: sel ? 2 : 1),
                                     ),
                                     child: Row(children: [
                                       Container(
-                                        width: 42,
-                                        height: 42,
+                                        width: 42, height: 42,
                                         decoration: BoxDecoration(
-                                          color: sel
-                                              ? AppTheme.accent.withValues(alpha: 0.15)
-                                              : Colors.grey.shade100,
+                                          color: sel ? AppTheme.accent.withValues(alpha: 0.15) : Colors.grey.shade100,
                                           borderRadius: BorderRadius.circular(10),
                                         ),
                                         child: Icon(
-                                          v.tipo == 'motorcycle'
-                                              ? Icons.two_wheeler_rounded
-                                              : v.tipo == 'truck'
-                                                  ? Icons.local_shipping_rounded
-                                                  : Icons.directions_car_rounded,
-                                          color: sel ? AppTheme.accent : Colors.grey,
-                                          size: 22,
+                                          v.tipo == 'motorcycle' ? Icons.two_wheeler_rounded
+                                              : v.tipo == 'truck' ? Icons.local_shipping_rounded
+                                              : Icons.directions_car_rounded,
+                                          color: sel ? AppTheme.accent : Colors.grey, size: 22,
                                         ),
                                       ),
                                       const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text('${v.marca} ${v.modelo}',
-                                                style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 14,
-                                                    color: sel
-                                                        ? AppTheme.accent
-                                                        : AppTheme.textPrimary)),
-                                            Text(
-                                              '${v.placa} · ${v.year}${v.color != null ? ' · ${v.color}' : ''}',
-                                              style: TextStyle(
-                                                  fontSize: 12,
-                                                  color: Colors.grey.shade500),
-                                            ),
-                                          ],
-                                        ),
+                                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                        Text('${v.marca} ${v.modelo}',
+                                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14,
+                                                color: sel ? AppTheme.accent : AppTheme.textPrimary)),
+                                        Text('${v.placa} · ${v.year}${v.color != null ? ' · ${v.color}' : ''}',
+                                            style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
+                                      ])),
+                                      if (sel) Container(
+                                        padding: const EdgeInsets.all(4),
+                                        decoration: BoxDecoration(color: AppTheme.accent, shape: BoxShape.circle),
+                                        child: const Icon(Icons.check_rounded, color: Colors.white, size: 14),
                                       ),
-                                      if (sel)
-                                        Container(
-                                          padding: const EdgeInsets.all(4),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.accent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.check_rounded,
-                                              color: Colors.white, size: 14),
-                                        ),
                                     ]),
                                   ),
                                 );
@@ -547,59 +427,45 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                             ),
                   const SizedBox(height: 24),
 
-                  // ── Tipo detectado por IA (informativo) ───────
+                  // ── Info IA ───────────────────────────────
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: const Color(0xFF3B82F6).withValues(alpha: 0.07),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                          color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
+                      border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.2)),
                     ),
                     child: const Row(children: [
-                      Icon(Icons.psychology_rounded,
-                          color: Color(0xFF3B82F6), size: 22),
+                      Icon(Icons.psychology_rounded, color: Color(0xFF3B82F6), size: 22),
                       SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Tipo de incidente — detectado por IA',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
-                                    color: Color(0xFF3B82F6))),
-                            SizedBox(height: 2),
-                            Text(
-                              'Gemini analizará tus fotos, audio y descripción para clasificar automáticamente el tipo de emergencia.',
-                              style: TextStyle(fontSize: 11, color: Colors.grey),
-                            ),
-                          ],
-                        ),
-                      ),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text('Análisis automático con IA',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF3B82F6))),
+                        SizedBox(height: 2),
+                        Text('Gemini analizará tus fotos, audio y descripción para clasificar la emergencia.',
+                            style: TextStyle(fontSize: 11, color: Colors.grey)),
+                      ])),
                     ]),
                   ),
                   const SizedBox(height: 24),
 
                   // ── Descripción ───────────────────────────
-                  _Seccion(icono: Icons.description_rounded, titulo: 'Descripción'),
+                  Seccion(icono: Icons.description_rounded, titulo: 'Descripción'),
                   const SizedBox(height: 10),
                   TextFormField(
                     controller: _descripcionCtrl,
                     maxLines: 4,
                     decoration: const InputDecoration(
-                      hintText:
-                          'Describe el problema... La IA analizará tu descripción',
+                      hintText: 'Describe el problema... La IA analizará tu descripción',
                       alignLabelWithHint: true,
                     ),
                   ),
                   const SizedBox(height: 24),
 
                   // ── Evidencia ─────────────────────────────
-                  _Seccion(
+                  Seccion(
                       icono: Icons.attach_file_rounded,
-                      titulo:
-                          'Evidencia ${_archivos.isNotEmpty ? "(${_archivos.length})" : ""}'),
+                      titulo: 'Evidencia ${_archivos.isNotEmpty ? "(${_archivos.length})" : ""}'),
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _mostrarOpcionesMedia,
@@ -608,40 +474,23 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                            color: AppTheme.accent.withValues(alpha: 0.3),
-                            style: BorderStyle.solid),
+                        border: Border.all(color: AppTheme.accent.withValues(alpha: 0.3)),
                       ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            _grabando
-                                ? Icons.stop_circle_rounded
-                                : Icons.add_a_photo_rounded,
-                            color: _grabando ? AppTheme.error : AppTheme.accent,
-                            size: 32,
+                      child: Column(children: [
+                        Icon(_grabando ? Icons.stop_circle_rounded : Icons.add_a_photo_rounded,
+                            color: _grabando ? AppTheme.error : AppTheme.accent, size: 32),
+                        const SizedBox(height: 8),
+                        Text(
+                          _grabando ? '🔴 Grabando... toca para detener' : 'Foto · Audio · Grabar',
+                          style: TextStyle(color: _grabando ? AppTheme.error : AppTheme.accent, fontWeight: FontWeight.w600),
+                        ),
+                        if (_archivos.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text('La IA analizará los archivos que adjuntes',
+                                style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            _grabando
-                                ? '🔴 Grabando... toca para detener'
-                                : 'Foto · Audio · Grabar',
-                            style: TextStyle(
-                              color: _grabando ? AppTheme.error : AppTheme.accent,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          if (_archivos.isEmpty)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 4),
-                              child: Text(
-                                'La IA analizará los archivos que adjuntes',
-                                style: TextStyle(
-                                    fontSize: 11, color: Colors.grey.shade500),
-                              ),
-                            ),
-                        ],
-                      ),
+                      ]),
                     ),
                   ),
                   if (_archivos.isNotEmpty) ...[
@@ -649,14 +498,10 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                     GridView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3, crossAxisSpacing: 8, mainAxisSpacing: 8),
                       itemCount: _archivos.length,
-                      itemBuilder: (_, i) => _ArchivoItem(
+                      itemBuilder: (_, i) => ArchivoItem(
                         archivo: _archivos[i],
                         onRemover: () => setState(() => _archivos.removeAt(i)),
                       ),
@@ -670,27 +515,15 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.error,
                       minimumSize: const ui.Size(double.infinity, 58),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                     icon: const Icon(Icons.emergency_rounded, color: Colors.white),
-                    label: const Text(
-                      'Reportar Emergencia',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold),
-                    ),
+                    label: const Text('Reportar Emergencia',
+                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 8),
-                  Center(
-                    child: Text(
-                      'La IA analizará y notificará talleres automáticamente',
-                      style:
-                          TextStyle(fontSize: 11, color: Colors.grey.shade500),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                  Center(child: Text('La IA analizará y notificará talleres automáticamente',
+                      style: TextStyle(fontSize: 11, color: Colors.grey.shade500), textAlign: TextAlign.center)),
                   const SizedBox(height: 24),
                 ],
               ),
@@ -699,309 +532,5 @@ class _CrearIncidenteScreenState extends State<CrearIncidenteScreen> {
         },
       ),
     );
-  }
-
-
-}
-
-// ─── Pantalla de análisis IA ───────────────────────────────────
-
-class _PantallaAnalizando extends StatefulWidget {
-  final String mensaje;
-  const _PantallaAnalizando({required this.mensaje});
-
-  @override
-  State<_PantallaAnalizando> createState() => _PantallaAnalizandoState();
-}
-
-class _PantallaAnalizandoState extends State<_PantallaAnalizando>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
-  int _paso = 0;
-  final _pasos = [
-    '📤 Subiendo archivos...',
-    '🤖 Analizando con Gemini IA...',
-    '🔍 Clasificando el incidente...',
-    '📍 Buscando talleres cercanos...',
-    '🔔 Notificando talleres...',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(seconds: 2))
-      ..repeat();
-    _anim = Tween(begin: 0.0, end: 1.0).animate(_ctrl);
-    Future.doWhile(() async {
-      await Future.delayed(const Duration(seconds: 2));
-      if (!mounted) return false;
-      setState(() => _paso = (_paso + 1) % _pasos.length);
-      return true;
-    });
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Evitar que se salga de la app mientras se analiza
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('⏳ Espera a que termine el análisis...'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-        return false;
-      },
-      child: Scaffold(
-        backgroundColor: AppTheme.primary,
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(40),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedBuilder(
-                  animation: _anim,
-                  builder: (_, __) => Transform.rotate(
-                    angle: _anim.value * 2 * 3.14159,
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.1),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.accent, width: 3),
-                      ),
-                      child: const Icon(Icons.psychology_rounded,
-                          color: Colors.white, size: 50),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 40),
-                const Text(
-                  'Procesando tu emergencia',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 500),
-                  child: Text(
-                    _pasos[_paso],
-                    key: ValueKey(_paso),
-                    style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.8), fontSize: 15),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                LinearProgressIndicator(
-                  backgroundColor: Colors.white.withValues(alpha: 0.2),
-                  valueColor: const AlwaysStoppedAnimation(AppTheme.accent),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Gemini está analizando tus archivos\ny buscando talleres cercanos',
-                  style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ─── Widgets auxiliares ────────────────────────────────────────
-
-class _Seccion extends StatelessWidget {
-  final IconData icono;
-  final String titulo;
-  const _Seccion({required this.icono, required this.titulo});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Container(
-        padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(
-          color: AppTheme.accent.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Icon(icono, color: AppTheme.accent, size: 18),
-      ),
-      const SizedBox(width: 10),
-      Text(titulo,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 16,
-              color: AppTheme.textPrimary)),
-    ]);
-  }
-}
-
-class _MediaSheet extends StatelessWidget {
-  final VoidCallback onTomarFoto, onGaleria, onPickAudio, onGrabarAudio;
-  final bool grabando;
-
-  const _MediaSheet({
-    required this.onTomarFoto,
-    required this.onGaleria,
-    required this.onPickAudio,
-    required this.onGrabarAudio,
-    required this.grabando,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('Agregar evidencia',
-              style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  color: AppTheme.textPrimary)),
-          const SizedBox(height: 20),
-          GridView.count(
-            shrinkWrap: true,
-            crossAxisCount: 3,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1,
-            children: [
-              _Opcion(icono: Icons.camera_alt_rounded, label: 'Cámara',
-                  color: const Color(0xFF3B82F6), onTap: onTomarFoto),
-              _Opcion(icono: Icons.photo_library_rounded, label: 'Galería',
-                  color: const Color(0xFF8B5CF6), onTap: onGaleria),
-              _Opcion(icono: Icons.audio_file_rounded, label: 'Audio',
-                  color: const Color(0xFFF59E0B), onTap: onPickAudio),
-              _Opcion(
-                  icono: grabando ? Icons.stop_rounded : Icons.mic_rounded,
-                  label: grabando ? 'Detener' : 'Grabar',
-                  color: grabando ? AppTheme.error : const Color(0xFF6B7280),
-                  onTap: onGrabarAudio),
-            ],
-          ),
-          const SizedBox(height: 8),
-        ],
-      ),
-    );
-  }
-}
-
-class _Opcion extends StatelessWidget {
-  final IconData icono;
-  final String label;
-  final Color color;
-  final VoidCallback onTap;
-  const _Opcion({required this.icono, required this.label,
-      required this.color, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icono, color: color, size: 28),
-            const SizedBox(height: 6),
-            Text(label,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                    color: color, fontSize: 11, fontWeight: FontWeight.w600)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ArchivoItem extends StatelessWidget {
-  final File archivo;
-  final VoidCallback onRemover;
-  const _ArchivoItem({required this.archivo, required this.onRemover});
-
-  bool get esImagen => ['jpg', 'jpeg', 'png', 'webp', 'gif']
-      .contains(archivo.path.split('.').last.toLowerCase());
-  bool get esVideo => ['mp4', 'mov', 'avi', 'webm']
-      .contains(archivo.path.split('.').last.toLowerCase());
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(children: [
-      ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: esImagen
-            ? Image.file(archivo,
-                width: double.infinity,
-                height: double.infinity,
-                fit: BoxFit.cover)
-            : Container(
-                color: esVideo
-                    ? const Color(0xFF8B5CF6).withValues(alpha: 0.15)
-                    : const Color(0xFF10B981).withValues(alpha: 0.15),
-                child: Center(
-                  child: Icon(
-                    esVideo ? Icons.play_circle_rounded : Icons.audio_file_rounded,
-                    color: esVideo
-                        ? const Color(0xFF8B5CF6)
-                        : const Color(0xFF10B981),
-                    size: 36,
-                  ),
-                ),
-              ),
-      ),
-      Positioned(
-        top: 4, right: 4,
-        child: GestureDetector(
-          onTap: onRemover,
-          child: Container(
-            padding: const EdgeInsets.all(3),
-            decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
-            child: const Icon(Icons.close_rounded, color: Colors.white, size: 14),
-          ),
-        ),
-      ),
-      if (!esImagen)
-        Positioned(
-          bottom: 4, left: 4,
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(6)),
-            child: Text(
-              esVideo ? 'VIDEO' : 'AUDIO',
-              style: const TextStyle(
-                  color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-    ]);
   }
 }

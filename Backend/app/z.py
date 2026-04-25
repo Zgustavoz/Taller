@@ -1,7 +1,7 @@
 from google import genai
 
 client = genai.Client(
-    api_key="AIzaSyC9nc3BtfwtHawxgYUSF9imzNtyHyKEy1c"
+    api_key="tu api de gemini para pruebas "
 )
 
 response = client.models.generate_content(
