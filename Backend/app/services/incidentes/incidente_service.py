@@ -16,6 +16,7 @@ from app.services.ia.gemini_service import (
 from app.repositories.gestion_usuario.usuario.usuario_repository import UsuarioRepository
 from app.schemas.tipo_incidente_schema import TipoIncidenteCreate
 from app.services.notificaciones.notificacion_service import NotificacionService
+from app.services.incidentes.estado_validator import EstadoIncidenteValidator
 
 
 class IncidenteService:
@@ -325,6 +326,49 @@ class IncidenteService:
         coord = await self.repo.obtener_coordenadas(incidente_id)
         return await self._serializar(incidente, coord)
 
+    async def taller_rechaza(
+        self,
+        incidente_id: int,
+        taller_id: int,
+        notas: str | None = None,
+    ) -> dict:
+        incidente = await self.repo.obtener_por_id(incidente_id)
+        if not incidente:
+            raise HTTPException(status_code=404, detail="Incidente no encontrado")
+
+        if incidente.estado not in ["notificando", "pendiente"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"El incidente no puede ser rechazado en estado '{incidente.estado}'",
+            )
+
+        asignacion = await self.asignacion_repo.obtener_por_incidente_y_taller(incidente_id, taller_id)
+        if not asignacion:
+            raise HTTPException(
+                status_code=404,
+                detail="No existe asignación para este taller en el incidente",
+            )
+
+        if asignacion.estado_respuesta in ["aceptado", "descartado"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No se puede rechazar una asignación en estado '{asignacion.estado_respuesta}'",
+            )
+
+        await self.asignacion_repo.marcar_rechazado(incidente_id, taller_id)
+        await self.historial_repo.registrar(
+            incidente_id=incidente_id,
+            estado_nuevo=incidente.estado,
+            estado_anterior=incidente.estado,
+            tipo_actor="taller",
+            actor_id=taller_id,
+            notas=notas or f"Taller #{taller_id} rechazó la solicitud",
+        )
+
+        coord = await self.repo.obtener_coordenadas(incidente_id)
+        incidente = await self.repo.obtener_por_id(incidente_id)
+        return await self._serializar(incidente, coord)
+
     # ─── Obtener detalle completo ─────────────────────────────
     async def obtener(self, incidente_id: int) -> dict:
         incidente = await self.repo.obtener_por_id(incidente_id)
@@ -406,27 +450,26 @@ class IncidenteService:
         tipo_actor: str = "sistema",
         notas: str | None = None,
     ) -> dict:
-        estados_validos = [
-            "pendiente", "analizando", "notificando",
-            "asignado", "en_proceso", "resuelto", "cancelado",
-        ]
-        if estado not in estados_validos:
-            raise HTTPException(status_code=400, detail=f"Estado inválido: {estado}")
+        estado_normalizado = {
+            "en_proceso": "en_progreso",
+        }.get(estado, estado)
 
         incidente = await self.repo.obtener_por_id(incidente_id)
         if not incidente:
             raise HTTPException(status_code=404, detail="Incidente no encontrado")
 
         estado_anterior = incidente.estado
+        EstadoIncidenteValidator.validar_transicion(estado_anterior, estado_normalizado)
+
         valores_extra = {}
-        if estado == "resuelto":
+        if estado_normalizado == "resuelto":
             from datetime import datetime, timezone
             valores_extra["resuelto_at"] = datetime.now(timezone.utc)
 
-        await self.repo.actualizar_estado(incidente_id, estado, **valores_extra)
+        await self.repo.actualizar_estado(incidente_id, estado_normalizado, **valores_extra)
         await self.historial_repo.registrar(
             incidente_id=incidente_id,
-            estado_nuevo=estado,
+            estado_nuevo=estado_normalizado,
             estado_anterior=estado_anterior,
             tipo_actor=tipo_actor,
             actor_id=actor_id,

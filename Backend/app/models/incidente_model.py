@@ -23,7 +23,7 @@ class Incidente(Base):
 
     # Estado del ciclo completo
     estado = Column(String(30), default="pendiente", nullable=False)
-    # pendiente → analizando → notificando → asignado → en_proceso → resuelto | cancelado
+    # pendiente -> analizando -> notificando -> asignado -> en_progreso -> resuelto | cancelado
 
     nivel_prioridad = Column(SmallInteger, nullable=True)
 

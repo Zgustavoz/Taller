@@ -80,7 +80,9 @@ async def seed_database():
                     telefono,
                     direccion,
                     ubicacion,
-                    especialidades
+                    especialidades,
+                    esta_disponible,
+                    esta_activo
                 )
 
                 VALUES
@@ -93,7 +95,9 @@ async def seed_database():
                     '70000001',
                     'Zona Nuevo Abasto 1',
                     ST_GeomFromText('POINT(-63.1870 -17.7885)',4326),
-                    ARRAY['bateria','llanta']
+                    ARRAY['bateria','llanta'],
+                    true,
+                    true
                 ),
 
                 (
@@ -104,7 +108,9 @@ async def seed_database():
                     '70000002',
                     'Zona Nuevo Abasto 2',
                     ST_GeomFromText('POINT(-63.1855 -17.7890)',4326),
-                    ARRAY['motor','choque']
+                    ARRAY['motor','choque'],
+                    true,
+                    true
                 ),
 
                 (
@@ -115,7 +121,9 @@ async def seed_database():
                     '70000003',
                     'Zona Nuevo Abasto 3',
                     ST_GeomFromText('POINT(-63.1882 -17.7875)',4326),
-                    ARRAY['bateria','motor']
+                    ARRAY['bateria','motor'],
+                    true,
+                    true
                 ),
 
                 (
@@ -126,7 +134,9 @@ async def seed_database():
                     '70000004',
                     'Zona Nuevo Abasto 4',
                     ST_GeomFromText('POINT(-63.1878 -17.7902)',4326),
-                    ARRAY['choque']
+                    ARRAY['choque'],
+                    true,
+                    true
                 ),
 
                 (
@@ -137,7 +147,9 @@ async def seed_database():
                     '70000005',
                     'Zona Nuevo Abasto 5',
                     ST_GeomFromText('POINT(-63.1862 -17.7868)',4326),
-                    ARRAY['llanta']
+                    ARRAY['llanta'],
+                    true,
+                    true
                 ),
 
                 (
@@ -148,7 +160,9 @@ async def seed_database():
                     '70000006',
                     'Zona Nuevo Abasto 6',
                     ST_GeomFromText('POINT(-63.1849 -17.7881)',4326),
-                    ARRAY['motor']
+                    ARRAY['motor'],
+                    true,
+                    true
                 ),
 
                 (
@@ -159,7 +173,9 @@ async def seed_database():
                     '70000007',
                     'Zona Nuevo Abasto 7',
                     ST_GeomFromText('POINT(-63.1889 -17.7898)',4326),
-                    ARRAY['bateria','choque']
+                    ARRAY['bateria','choque'],
+                    true,
+                    true
                 ),
 
                 (
@@ -170,7 +186,9 @@ async def seed_database():
                     '70000008',
                     'Zona Nuevo Abasto 8',
                     ST_GeomFromText('POINT(-63.1838 -17.7879)',4326),
-                    ARRAY['llanta']
+                    ARRAY['llanta'],
+                    true,
+                    true
                 ),
 
                 (
@@ -181,7 +199,9 @@ async def seed_database():
                     '70000009',
                     'Zona Nuevo Abasto 9',
                     ST_GeomFromText('POINT(-63.1873 -17.7862)',4326),
-                    ARRAY['motor']
+                    ARRAY['motor'],
+                    true,
+                    true
                 ),
 
                 (
@@ -192,7 +212,9 @@ async def seed_database():
                     '70000010',
                     'Zona Nuevo Abasto 10',
                     ST_GeomFromText('POINT(-63.1860 -17.7905)',4326),
-                    ARRAY['bateria','motor','llanta']
+                    ARRAY['bateria','motor','llanta'],
+                    true,
+                    true
                 );
 
             """), {

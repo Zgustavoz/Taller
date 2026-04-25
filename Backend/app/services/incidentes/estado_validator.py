@@ -4,10 +4,15 @@ from app.core.enums import IncidenteEstado, TRANSICIONES_ESTADO_INCIDENTE
 
 
 class EstadoIncidenteValidator:
+    ALIASES_ESTADO = {
+        "en_proceso": "en_progreso",
+    }
+
     @staticmethod
     def parse_estado(valor: str) -> IncidenteEstado:
+        valor_normalizado = EstadoIncidenteValidator.ALIASES_ESTADO.get(valor, valor)
         try:
-            return IncidenteEstado(valor)
+            return IncidenteEstado(valor_normalizado)
         except ValueError as exc:
             validos = [estado.value for estado in IncidenteEstado]
             raise HTTPException(
