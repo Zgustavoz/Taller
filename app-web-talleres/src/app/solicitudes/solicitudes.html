@@ -1,1 +1,181 @@
 <app-header-page title="Solicitudes Pendientes" subtitle="Lista de solicitudes pendientes de aprobación" />
+
+<section class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[2fr,1fr]">
+  <article class="rounded-lg border border-base-300 bg-base-100 p-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h3 class="text-base font-semibold">Solicitudes de incidentes</h3>
+
+      <div class="join">
+        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'pendiente'"
+          (click)="cambiarFiltro('pendiente')">
+          Pendientes
+        </button>
+        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'notificando'"
+          (click)="cambiarFiltro('notificando')">
+          Notificando
+        </button>
+        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'asignado'"
+          (click)="cambiarFiltro('asignado')">
+          Asignados
+        </button>
+        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'en_progreso'"
+          (click)="cambiarFiltro('en_progreso')">
+          En proceso
+        </button>
+        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'todos'"
+          (click)="cambiarFiltro('todos')">
+          Todos
+        </button>
+      </div>
+    </div>
+
+    <p class="mt-2 text-sm opacity-70">Total: {{ totalSolicitudes() }} solicitudes</p>
+
+    @if (error()) {
+    <div class="alert alert-error mt-3 py-2 text-sm">{{ error() }}</div>
+    }
+
+    <div class="mt-4 overflow-x-auto">
+      <table class="table table-zebra table-sm">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Estado</th>
+            <th>Prioridad</th>
+            <th>Cliente</th>
+            <th>Vehículo</th>
+            <th>Tipo</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          @if (cargandoListado()) {
+          <tr>
+            <td colspan="7" class="text-center py-6">
+              <span class="loading loading-spinner loading-md"></span>
+            </td>
+          </tr>
+          } @else {
+          @for (solicitud of solicitudes(); track solicitud.id) {
+          <tr [class.bg-base-200]="incidenteSeleccionadoId() === solicitud.id">
+            <td>{{ solicitud.id }}</td>
+            <td><span class="badge badge-outline">{{ solicitud.estado }}</span></td>
+            <td>{{ getNivelPrioridad(solicitud.prioridad) }}</td>
+            <td>{{ solicitud.usuario_nombre || 'N/D' }}</td>
+            <td>{{ solicitud.vehiculo_placa || 'N/D' }}</td>
+            <td>{{ solicitud.tipo_incidente || 'Sin clasificar' }}</td>
+            <td class="flex gap-2">
+              <button class="btn btn-ghost btn-xs" (click)="verDetalle(solicitud.id)">Detalle</button>
+              @if (puedeAceptarRechazar(solicitud)) {
+              <button class="btn btn-primary btn-xs" (click)="aceptarSolicitud(solicitud)"
+                [disabled]="aceptandoId() === solicitud.id || rechazandoId() === solicitud.id || actualizandoEstadoId() === solicitud.id">
+                @if (aceptandoId() === solicitud.id) {
+                <span class="loading loading-spinner loading-xs"></span>
+                } @else {
+                Aceptar
+                }
+              </button>
+              <button class="btn btn-outline btn-error btn-xs" (click)="rechazarSolicitud(solicitud)"
+                [disabled]="rechazandoId() === solicitud.id || aceptandoId() === solicitud.id || actualizandoEstadoId() === solicitud.id">
+                @if (rechazandoId() === solicitud.id) {
+                <span class="loading loading-spinner loading-xs"></span>
+                } @else {
+                Rechazar
+                }
+              </button>
+              }
+
+              @if (puedeIniciarOperacion(solicitud)) {
+              <button class="btn btn-secondary btn-xs" (click)="iniciarOperacion(solicitud)"
+                [disabled]="actualizandoEstadoId() === solicitud.id || aceptandoId() === solicitud.id || rechazandoId() === solicitud.id">
+                @if (actualizandoEstadoId() === solicitud.id) {
+                <span class="loading loading-spinner loading-xs"></span>
+                } @else {
+                Iniciar
+                }
+              </button>
+              }
+
+              @if (puedeMarcarResuelto(solicitud)) {
+              <button class="btn btn-success btn-xs" (click)="marcarResuelto(solicitud)"
+                [disabled]="actualizandoEstadoId() === solicitud.id || aceptandoId() === solicitud.id || rechazandoId() === solicitud.id">
+                @if (actualizandoEstadoId() === solicitud.id) {
+                <span class="loading loading-spinner loading-xs"></span>
+                } @else {
+                Resolver
+                }
+              </button>
+              }
+            </td>
+          </tr>
+          } @empty {
+          <tr>
+            <td colspan="7" class="text-center py-6 opacity-70">No hay solicitudes para este filtro.</td>
+          </tr>
+          }
+          }
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <aside class="rounded-lg border border-base-300 bg-base-100 p-4">
+    <h3 class="text-base font-semibold">Detalle de solicitud</h3>
+
+    @if (cargandoDetalle()) {
+    <div class="py-8 text-center">
+      <span class="loading loading-spinner loading-md"></span>
+    </div>
+    } @else if (detalle()) {
+    <div class="mt-3 space-y-4 text-sm">
+      <div>
+        <p><strong>ID:</strong> {{ detalle()!.id }}</p>
+        <p><strong>Estado:</strong> {{ detalle()!.estado }}</p>
+        <p><strong>Prioridad:</strong> {{ getNivelPrioridad(detalle()!.prioridad) }}</p>
+        <p><strong>Descripción:</strong> {{ detalle()!.descripcion || 'Sin descripción' }}</p>
+        <p><strong>Dirección:</strong> {{ detalle()!.ubicacion.texto_direccion || 'Sin dirección' }}</p>
+      </div>
+
+      <div>
+        <h4 class="font-semibold">Información IA</h4>
+        <p><strong>Clasificación:</strong> {{ detalle()!.ia.clasificacion || 'No detectada' }}</p>
+        <p><strong>Confianza:</strong> {{ detalle()!.ia.confianza ?? 'N/D' }}</p>
+        <p><strong>Resumen:</strong> {{ detalle()!.ia.resumen || 'Sin resumen' }}</p>
+        @if (detalle()!.ia.ficha_resumen) {
+        <div class="mt-2 rounded-md bg-base-200 p-2 text-xs">
+          <pre class="whitespace-pre-wrap wrap-break-word">{{ detalle()!.ia.ficha_resumen | json }}</pre>
+        </div>
+        }
+      </div>
+
+      <div>
+        <h4 class="font-semibold">Multimedia</h4>
+        <p>
+          {{ detalle()!.multimedia.cantidad }} archivo(s)
+          (imagen: {{ detalle()!.multimedia.tiene_imagen ? 'sí' : 'no' }},
+          audio: {{ detalle()!.multimedia.tiene_audio ? 'sí' : 'no' }})
+        </p>
+      </div>
+
+      <div>
+        <h4 class="font-semibold">Historial</h4>
+        <ul class="mt-2 space-y-2">
+          @for (item of detalle()!.historial; track item.creado_at + item.estado_nuevo) {
+          <li class="rounded-md border border-base-300 p-2">
+            <p><strong>{{ item.estado_anterior || 'inicio' }}</strong> -> <strong>{{ item.estado_nuevo }}</strong></p>
+            <p class="opacity-70">{{ item.tipo_actor }} · {{ item.creado_at || 'sin fecha' }}</p>
+            @if (item.notas) {
+            <p class="opacity-80">{{ item.notas }}</p>
+            }
+          </li>
+          } @empty {
+          <li class="opacity-70">Sin historial registrado.</li>
+          }
+        </ul>
+      </div>
+    </div>
+    } @else {
+    <p class="mt-3 text-sm opacity-70">Selecciona una solicitud para ver su información estructurada.</p>
+    }
+  </aside>
+</section>
