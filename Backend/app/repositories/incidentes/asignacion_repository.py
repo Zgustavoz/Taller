@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 from typing import Optional
 from app.models.asignacion_taller_model import AsignacionTaller
 from app.models.taller_model import Taller
@@ -52,6 +52,9 @@ class AsignacionRepository:
                 Taller.nombre_negocio,
                 Taller.telefono,
                 Taller.especialidades,
+                Taller.direccion.label("direccion_taller"),
+                func.ST_Y(Taller.ubicacion).label("latitud_taller"),
+                func.ST_X(Taller.ubicacion).label("longitud_taller"),
             )
             .join(Taller, Taller.id == AsignacionTaller.taller_id)
             .where(AsignacionTaller.incidente_id == incidente_id)

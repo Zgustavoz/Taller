@@ -1,181 +1,304 @@
-<app-header-page title="Solicitudes Pendientes" subtitle="Lista de solicitudes pendientes de aprobación" />
+<app-header-page title="Centro de Solicitudes"
+  subtitle="Visualiza incidentes, ubicación, evidencia multimedia y diagnóstico de IA en un solo lugar" />
 
-<section class="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-[2fr,1fr]">
-  <article class="rounded-lg border border-base-300 bg-base-100 p-4">
+<section class="solicitudes-shell mt-4">
+  <article class="panel-surface panel-surface--list">
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <h3 class="text-base font-semibold">Solicitudes de incidentes</h3>
+      <div>
+        <h3 class="text-lg font-semibold">Incidentes recibidos</h3>
+        <p class="text-sm opacity-70">{{ totalSolicitudes() }} solicitud(es) en el filtro actual</p>
+      </div>
 
-      <div class="join">
-        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'pendiente'"
-          (click)="cambiarFiltro('pendiente')">
-          Pendientes
+      <div class="flex flex-wrap gap-2" aria-label="Filtros por estado">
+        @for (filtro of filtros; track filtro.estado) {
+        <button class="btn btn-sm" [class.btn-primary]="estadoFiltro() === filtro.estado"
+          [class.btn-outline]="estadoFiltro() !== filtro.estado" (click)="cambiarFiltro(filtro.estado)">
+          {{ filtro.label }}
         </button>
-        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'notificando'"
-          (click)="cambiarFiltro('notificando')">
-          Notificando
-        </button>
-        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'asignado'"
-          (click)="cambiarFiltro('asignado')">
-          Asignados
-        </button>
-        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'en_progreso'"
-          (click)="cambiarFiltro('en_progreso')">
-          En proceso
-        </button>
-        <button class="btn join-item btn-sm" [class.btn-primary]="estadoFiltro() === 'todos'"
-          (click)="cambiarFiltro('todos')">
-          Todos
-        </button>
+        }
       </div>
     </div>
-
-    <p class="mt-2 text-sm opacity-70">Total: {{ totalSolicitudes() }} solicitudes</p>
 
     @if (error()) {
     <div class="alert alert-error mt-3 py-2 text-sm">{{ error() }}</div>
     }
 
-    <div class="mt-4 overflow-x-auto">
-      <table class="table table-zebra table-sm">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Estado</th>
-            <th>Prioridad</th>
-            <th>Cliente</th>
-            <th>Vehículo</th>
-            <th>Tipo</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          @if (cargandoListado()) {
-          <tr>
-            <td colspan="7" class="text-center py-6">
-              <span class="loading loading-spinner loading-md"></span>
-            </td>
-          </tr>
-          } @else {
-          @for (solicitud of solicitudes(); track solicitud.id) {
-          <tr [class.bg-base-200]="incidenteSeleccionadoId() === solicitud.id">
-            <td>{{ solicitud.id }}</td>
-            <td><span class="badge badge-outline">{{ solicitud.estado }}</span></td>
-            <td>{{ getNivelPrioridad(solicitud.prioridad) }}</td>
-            <td>{{ solicitud.usuario_nombre || 'N/D' }}</td>
-            <td>{{ solicitud.vehiculo_placa || 'N/D' }}</td>
-            <td>{{ solicitud.tipo_incidente || 'Sin clasificar' }}</td>
-            <td class="flex gap-2">
-              <button class="btn btn-ghost btn-xs" (click)="verDetalle(solicitud.id)">Detalle</button>
-              @if (puedeAceptarRechazar(solicitud)) {
-              <button class="btn btn-primary btn-xs" (click)="aceptarSolicitud(solicitud)"
-                [disabled]="aceptandoId() === solicitud.id || rechazandoId() === solicitud.id || actualizandoEstadoId() === solicitud.id">
-                @if (aceptandoId() === solicitud.id) {
-                <span class="loading loading-spinner loading-xs"></span>
-                } @else {
-                Aceptar
-                }
-              </button>
-              <button class="btn btn-outline btn-error btn-xs" (click)="rechazarSolicitud(solicitud)"
-                [disabled]="rechazandoId() === solicitud.id || aceptandoId() === solicitud.id || actualizandoEstadoId() === solicitud.id">
-                @if (rechazandoId() === solicitud.id) {
-                <span class="loading loading-spinner loading-xs"></span>
-                } @else {
-                Rechazar
-                }
-              </button>
-              }
+    <div class="mt-4 space-y-3">
+      @if (cargandoListado()) {
+      <div class="py-10 text-center">
+        <span class="loading loading-spinner loading-lg"></span>
+      </div>
+      } @else {
+      @for (solicitud of solicitudes(); track trackBySolicitudId($index, solicitud)) {
+      <article class="request-card" [class.request-card--active]="incidenteSeleccionadoId() === solicitud.id">
+        <header class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="request-id">#{{ solicitud.id }}</span>
+            <span [class]="getClassEstado(solicitud.estado)">{{ solicitud.estado }}</span>
+            <span [class]="getClassPrioridad(solicitud.prioridad)">
+              Prioridad: {{ getNivelPrioridad(solicitud.prioridad) }}
+            </span>
+          </div>
+          <span class="text-xs opacity-70">{{ formatearFecha(solicitud.creado_at) }}</span>
+        </header>
 
-              @if (puedeIniciarOperacion(solicitud)) {
-              <button class="btn btn-secondary btn-xs" (click)="iniciarOperacion(solicitud)"
-                [disabled]="actualizandoEstadoId() === solicitud.id || aceptandoId() === solicitud.id || rechazandoId() === solicitud.id">
-                @if (actualizandoEstadoId() === solicitud.id) {
-                <span class="loading loading-spinner loading-xs"></span>
-                } @else {
-                Iniciar
-                }
-              </button>
-              }
+        <div class="mt-2 grid grid-cols-1 gap-2 text-sm sm:grid-cols-2">
+          <p><strong>Cliente:</strong> {{ solicitud.usuario_nombre || 'No especificado' }}</p>
+          <p><strong>Vehículo:</strong> {{ solicitud.vehiculo_placa || 'No especificado' }}</p>
+          <p><strong>Tipo:</strong> {{ solicitud.tipo_incidente || 'Sin clasificar' }}</p>
+          <p>
+            <strong>Distancia:</strong>
+            {{ getDistanciaTexto(solicitud.distancia_km) }}
+          </p>
+        </div>
 
-              @if (puedeMarcarResuelto(solicitud)) {
-              <button class="btn btn-success btn-xs" (click)="marcarResuelto(solicitud)"
-                [disabled]="actualizandoEstadoId() === solicitud.id || aceptandoId() === solicitud.id || rechazandoId() === solicitud.id">
-                @if (actualizandoEstadoId() === solicitud.id) {
-                <span class="loading loading-spinner loading-xs"></span>
-                } @else {
-                Resolver
-                }
-              </button>
-              }
-            </td>
-          </tr>
-          } @empty {
-          <tr>
-            <td colspan="7" class="text-center py-6 opacity-70">No hay solicitudes para este filtro.</td>
-          </tr>
+        @if (solicitud.resumen) {
+        <p class="mt-3 rounded-lg bg-base-200/70 p-3 text-sm leading-relaxed">{{ solicitud.resumen }}</p>
+        }
+
+        <footer class="mt-3 flex flex-wrap items-center gap-2">
+          <button class="btn btn-ghost btn-sm" (click)="verDetalle(solicitud.id)">Ver detalle</button>
+
+          @if (puedeAceptarRechazar(solicitud)) {
+          <button class="btn btn-primary btn-sm" (click)="aceptarSolicitud(solicitud)"
+            [disabled]="aceptandoId() === solicitud.id || rechazandoId() === solicitud.id || actualizandoEstadoId() === solicitud.id">
+            @if (aceptandoId() === solicitud.id) {
+            <span class="loading loading-spinner loading-xs"></span>
+            } @else {
+            Aceptar
+            }
+          </button>
+          <button class="btn btn-outline btn-error btn-sm" (click)="rechazarSolicitud(solicitud)"
+            [disabled]="rechazandoId() === solicitud.id || aceptandoId() === solicitud.id || actualizandoEstadoId() === solicitud.id">
+            @if (rechazandoId() === solicitud.id) {
+            <span class="loading loading-spinner loading-xs"></span>
+            } @else {
+            Rechazar
+            }
+          </button>
           }
+
+          @if (puedeIniciarOperacion(solicitud)) {
+          <button class="btn btn-secondary btn-sm" (click)="iniciarOperacion(solicitud)"
+            [disabled]="actualizandoEstadoId() === solicitud.id || aceptandoId() === solicitud.id || rechazandoId() === solicitud.id">
+            @if (actualizandoEstadoId() === solicitud.id) {
+            <span class="loading loading-spinner loading-xs"></span>
+            } @else {
+            Iniciar operación
+            }
+          </button>
           }
-        </tbody>
-      </table>
+
+          @if (puedeMarcarResuelto(solicitud)) {
+          <button class="btn btn-success btn-sm" (click)="marcarResuelto(solicitud)"
+            [disabled]="actualizandoEstadoId() === solicitud.id || aceptandoId() === solicitud.id || rechazandoId() === solicitud.id">
+            @if (actualizandoEstadoId() === solicitud.id) {
+            <span class="loading loading-spinner loading-xs"></span>
+            } @else {
+            Marcar resuelto
+            }
+          </button>
+          }
+        </footer>
+      </article>
+      } @empty {
+      <div class="empty-state">
+        <p>No hay solicitudes para este filtro.</p>
+      </div>
+      }
+      }
     </div>
   </article>
 
-  <aside class="rounded-lg border border-base-300 bg-base-100 p-4">
-    <h3 class="text-base font-semibold">Detalle de solicitud</h3>
+  <aside class="panel-surface panel-surface--detail">
+    <h3 class="text-lg font-semibold">Detalle del incidente</h3>
 
     @if (cargandoDetalle()) {
-    <div class="py-8 text-center">
-      <span class="loading loading-spinner loading-md"></span>
+    <div class="py-10 text-center">
+      <span class="loading loading-spinner loading-lg"></span>
     </div>
-    } @else if (detalle()) {
-    <div class="mt-3 space-y-4 text-sm">
-      <div>
-        <p><strong>ID:</strong> {{ detalle()!.id }}</p>
-        <p><strong>Estado:</strong> {{ detalle()!.estado }}</p>
-        <p><strong>Prioridad:</strong> {{ getNivelPrioridad(detalle()!.prioridad) }}</p>
-        <p><strong>Descripción:</strong> {{ detalle()!.descripcion || 'Sin descripción' }}</p>
-        <p><strong>Dirección:</strong> {{ detalle()!.ubicacion.texto_direccion || 'Sin dirección' }}</p>
-      </div>
+    } @else if (detalleActivo()) {
+    <section class="mt-3 space-y-4 text-sm">
+      <article class="detail-card">
+        <div class="flex flex-wrap items-center gap-2">
+          <span class="request-id">#{{ detalleActivo()!.id }}</span>
+          <span [class]="getClassEstado(detalleActivo()!.estado)">{{ detalleActivo()!.estado }}</span>
+          <span [class]="getClassPrioridad(detalleActivo()!.prioridad)">
+            {{ getNivelPrioridad(detalleActivo()!.prioridad) }}
+          </span>
+        </div>
+        <p class="mt-2 leading-relaxed">{{ detalleActivo()!.descripcion || 'Sin descripción registrada.' }}</p>
+        <p class="mt-2 text-xs opacity-70">{{ detalleActivo()!.ubicacion.texto_direccion || 'Sin dirección registrada.'
+          }}</p>
+      </article>
 
-      <div>
-        <h4 class="font-semibold">Información IA</h4>
-        <p><strong>Clasificación:</strong> {{ detalle()!.ia.clasificacion || 'No detectada' }}</p>
-        <p><strong>Confianza:</strong> {{ detalle()!.ia.confianza ?? 'N/D' }}</p>
-        <p><strong>Resumen:</strong> {{ detalle()!.ia.resumen || 'Sin resumen' }}</p>
-        @if (detalle()!.ia.ficha_resumen) {
-        <div class="mt-2 rounded-md bg-base-200 p-2 text-xs">
-          <pre class="whitespace-pre-wrap wrap-break-word">{{ detalle()!.ia.ficha_resumen | json }}</pre>
+      <article class="detail-card">
+        <div class="mb-2 flex items-center justify-between">
+          <h4 class="font-semibold">Ubicación en mapa</h4>
+          @if (!ubicacionMapa()) {
+          <span class="badge badge-outline">Sin coordenadas</span>
+          }
+        </div>
+
+        <div class="mb-2 flex flex-wrap items-center gap-2 text-xs">
+          <span class="badge badge-error badge-soft">Incidente</span>
+          @if (ubicacionTallerMapa()) {
+          <span class="badge badge-primary badge-soft">Taller</span>
+          }
+          <span class="opacity-70">Distancia: {{ getDistanciaTexto(distanciaTallerIncidenteKm()) }}</span>
+          <span class="opacity-70">ETA: {{ getTiempoEstimadoTexto(tiempoEstimadoLlegadaMin()) }}</span>
+        </div>
+
+        <app-map mode="readonly" [initialLocation]="ubicacionMapa()" [initialCenter]="centroMapa()"
+          [initialZoom]="zoomMapa()" [secondaryLocations]="puntosSecundariosMapa()" />
+
+        @if (asignacionMapa()) {
+        <p class="mt-2 text-xs opacity-70">
+          Taller: {{ asignacionMapa()!.nombre_taller || ('#' + asignacionMapa()!.taller_id) }}
+          @if (asignacionMapa()!.direccion_taller) {
+          · {{ asignacionMapa()!.direccion_taller }}
+          }
+        </p>
+        }
+      </article>
+
+      <article class="detail-card">
+        <h4 class="font-semibold">Clasificación IA (Gemini)</h4>
+        <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <div class="rounded-lg bg-base-200/80 p-2">
+            <p class="text-xs opacity-70">Tipo detectado</p>
+            <p class="font-medium">{{ detalleActivo()!.ia.clasificacion || 'Sin clasificar' }}</p>
+          </div>
+          <div class="rounded-lg bg-base-200/80 p-2">
+            <p class="text-xs opacity-70">Confianza</p>
+            <p class="font-medium">{{ getConfianza(detalleActivo()!.ia.confianza) }}</p>
+          </div>
+          <div class="rounded-lg bg-base-200/80 p-2">
+            <p class="text-xs opacity-70">Prioridad operacional</p>
+            <p class="font-medium">{{ getNivelPrioridad(detalleActivo()!.prioridad) }}</p>
+          </div>
+        </div>
+
+        <p class="mt-3 leading-relaxed">{{ detalleActivo()!.ia.resumen || 'Sin resumen de IA.' }}</p>
+
+        @if (fichaResumenEntries().length > 0) {
+        <div class="mt-3 rounded-lg border border-base-300 p-3">
+          <h5 class="mb-2 text-sm font-semibold">Ficha resumen</h5>
+          <dl class="grid gap-2 sm:grid-cols-2">
+            @for (entry of fichaResumenEntries(); track entry.key) {
+            <div class="rounded-md bg-base-200/60 p-2">
+              <dt class="text-xs uppercase opacity-65">{{ entry.key }}</dt>
+              <dd class="text-sm">{{ entry.value }}</dd>
+            </div>
+            }
+          </dl>
         </div>
         }
-      </div>
 
-      <div>
-        <h4 class="font-semibold">Multimedia</h4>
-        <p>
-          {{ detalle()!.multimedia.cantidad }} archivo(s)
-          (imagen: {{ detalle()!.multimedia.tiene_imagen ? 'sí' : 'no' }},
-          audio: {{ detalle()!.multimedia.tiene_audio ? 'sí' : 'no' }})
+        @if (analisisGeminiPretty()) {
+        <div class="mt-3 rounded-lg border border-base-300 bg-base-200/60 p-3">
+          <h5 class="mb-2 text-sm font-semibold">JSON recibido de Gemini</h5>
+          <pre class="json-block">{{ analisisGeminiPretty() }}</pre>
+        </div>
+        }
+      </article>
+
+      <article class="detail-card">
+        <h4 class="font-semibold">Evidencia multimedia</h4>
+        <p class="mt-1 text-xs opacity-70">
+          {{ detalleActivo()!.multimedia.cantidad }} archivo(s) registrados
+          · imágenes: {{ imagenesDetalle().length }} · audios: {{ audiosDetalle().length }}
         </p>
-      </div>
 
-      <div>
-        <h4 class="font-semibold">Historial</h4>
-        <ul class="mt-2 space-y-2">
-          @for (item of detalle()!.historial; track item.creado_at + item.estado_nuevo) {
-          <li class="rounded-md border border-base-300 p-2">
-            <p><strong>{{ item.estado_anterior || 'inicio' }}</strong> -> <strong>{{ item.estado_nuevo }}</strong></p>
-            <p class="opacity-70">{{ item.tipo_actor }} · {{ item.creado_at || 'sin fecha' }}</p>
-            @if (item.notas) {
-            <p class="opacity-80">{{ item.notas }}</p>
+        @if (imagenesDetalle().length > 0) {
+        <div class="mt-3">
+          <h5 class="mb-2 text-sm font-semibold">Imágenes de referencia</h5>
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            @for (imagen of imagenesDetalle(); track trackByMultimedia($index, imagen)) {
+            <a class="media-image-link" [href]="imagen.url_almacenamiento" target="_blank" rel="noopener noreferrer"
+              aria-label="Abrir imagen en nueva pestaña">
+              <img class="media-image" [src]="imagen.url_almacenamiento" [alt]="tituloMultimedia(imagen, $index)"
+                loading="lazy" crossorigin="anonymous" />
+              <div class="media-caption">
+                <p>{{ tituloMultimedia(imagen, $index) }}</p>
+                @if (esCloudinary(imagen.url_almacenamiento)) {
+                <span class="badge badge-outline badge-xs">Cloudinary</span>
+                }
+              </div>
+            </a>
             }
+          </div>
+        </div>
+        }
+
+        @if (audiosDetalle().length > 0) {
+        <div class="mt-3 space-y-3">
+          <h5 class="text-sm font-semibold">Audios</h5>
+          @for (audio of audiosDetalle(); track trackByMultimedia($index, audio)) {
+          <article class="rounded-lg border border-base-300 p-3">
+            <div class="mb-2 flex items-center justify-between gap-2">
+              <p class="text-sm font-medium">{{ tituloMultimedia(audio, $index) }}</p>
+              @if (esCloudinary(audio.url_almacenamiento)) {
+              <span class="badge badge-outline badge-xs">Cloudinary</span>
+              }
+            </div>
+
+            <audio class="w-full" controls preload="none">
+              <source [src]="audio.url_almacenamiento" [type]="audio.tipo_mime || 'audio/mpeg'"
+                crossorigin="anonymous" />
+              Tu navegador no soporta audio embebido.
+            </audio>
+
+            @if (audio.transcripcion) {
+            <p class="mt-2 rounded-md bg-base-200/70 p-2 text-xs leading-relaxed">
+              <strong>Transcripción:</strong> {{ audio.transcripcion }}
+            </p>
+            }
+          </article>
+          }
+        </div>
+        }
+
+        @if (imagenesDetalle().length === 0 && audiosDetalle().length === 0) {
+        <div class="empty-state mt-3">
+          <p>Este incidente no tiene archivos multimedia.</p>
+        </div>
+        }
+      </article>
+
+      <article class="detail-card">
+        <h4 class="font-semibold">Historial del incidente</h4>
+
+        <ul class="grid mt-3">
+          @for (item of historialOrdenado(); track trackByHistorial($index, item)) {
+          <li class="timeline-item">
+            <div class="timeline-dot"></div>
+            <div class="timeline-content">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="badge badge-outline badge-sm">{{ item.estado_anterior || 'inicio' }}</span>
+                <span class="opacity-60">→</span>
+                <span class="badge badge-primary badge-sm">{{ item.estado_nuevo }}</span>
+              </div>
+              <p class="mt-1 text-xs opacity-70">
+                {{ item.tipo_actor }} · {{ formatearFecha(item.creado_at) }}
+              </p>
+              @if (item.notas) {
+              <p class="mt-1 text-sm leading-relaxed">{{ item.notas }}</p>
+              }
+            </div>
           </li>
           } @empty {
-          <li class="opacity-70">Sin historial registrado.</li>
+          <div class="empty-state mt-3">
+            <p>Sin historial registrado.</p>
+          </div>
           }
         </ul>
-      </div>
-    </div>
+      </article>
+    </section>
     } @else {
-    <p class="mt-3 text-sm opacity-70">Selecciona una solicitud para ver su información estructurada.</p>
+    <div class="empty-state mt-3">
+      <p>Selecciona un incidente para revisar mapa, IA, multimedia e historial.</p>
+    </div>
     }
   </aside>
 </section>
