@@ -20,6 +20,11 @@ export interface AsignacionMinima {
   estado: string;
   distancia_km: number | null;
   puntuacion: number | null;
+  nombre_taller?: string | null;
+  telefono_taller?: string | null;
+  direccion_taller?: string | null;
+  latitud_taller?: number | null;
+  longitud_taller?: number | null;
 }
 
 export interface DetalleTallerMinimo {
