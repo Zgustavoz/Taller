@@ -13,11 +13,15 @@ class IncidenteBloc extends Bloc<IncidenteEvent, IncidenteState> {
     on<IncidenteSubirArchivos>(_onSubirArchivos);
     on<IncidenteEliminarMultimedia>(_onEliminarMultimedia);
     on<IncidenteCargarTalleresCercanos>(_onCargarTalleresCercanos);
+    on<IncidenteCancelar>(_onCancelar);
+    on<IncidenteCalificar>(_onCalificar);
   }
 
   Future<void> _onCargarMios(
       IncidenteCargarMios e, Emitter emit) async {
-    emit(IncidenteLoading());
+    if (state is! IncidenteListaCargada) {
+      emit(IncidenteLoading());
+    }
     try {
       final incidentes = await _repo.misIncidentes();
       final tipos = await _repo.listarTipos();
@@ -101,4 +105,29 @@ class IncidenteBloc extends Bloc<IncidenteEvent, IncidenteState> {
       emit(IncidenteError(e.toString()));
     }
   }
+
+  Future<void> _onCancelar(IncidenteCancelar e, Emitter emit) async {
+    emit(IncidenteLoading());
+    try {
+      await _repo.cancelar(e.incidenteId, motivo: e.motivo);
+      emit(IncidenteCanceladoExito());
+    } catch (e) {
+      emit(IncidenteError(e.toString()));
+    }
+  }
+
+  Future<void> _onCalificar(IncidenteCalificar e, Emitter emit) async {
+    emit(IncidenteLoading());
+    try {
+      final resultado = await _repo.calificar(
+        e.incidenteId,
+        puntuacion: e.puntuacion,
+        comentario: e.comentario,
+      );
+      emit(IncidenteCalificadoExito(resultado['nuevo_promedio_taller'] ?? 0.0));
+    } catch (e) {
+      emit(IncidenteError(e.toString()));
+    }
+  }
+
 }

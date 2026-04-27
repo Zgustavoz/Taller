@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/features/incidentes/presentation/bloc/incidente_bloc.dart';
+import 'package:mobile/features/incidentes/presentation/bloc/incidente_event.dart';
 import '../../../../core/config/theme/app_theme.dart';
 import '../../domain/entities/notificacion_entity.dart';
 import '../bloc/notificacion_bloc.dart';
@@ -12,8 +14,8 @@ class NotificacionesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => NotificacionBloc()..add(NotificacionCargar()),
+    return BlocProvider.value(
+      value: context.read<NotificacionBloc>()..add(NotificacionCargar()),
       child: const _NotificacionesView(),
     );
   }
@@ -167,17 +169,16 @@ class _NotificacionItem extends StatelessWidget {
     final noLeida = !notif.esLeida;
 
     return InkWell(
-      onTap: () {
-        // Marcar como leída
-        if (noLeida) {
-          context
-              .read<NotificacionBloc>()
-              .add(NotificacionMarcarLeida(notif.id));
-        }
+      onTap: () async {
+        if (noLeida) { context.read<NotificacionBloc>().add(NotificacionMarcarLeida(notif.id),);}
 
-        // Navegar al incidente si tiene uno
+        // Navegar al incidente
         if (notif.incidenteId != null) {
-          context.push('/incidentes/${notif.incidenteId}');
+          await context.push('/incidentes/${notif.incidenteId}',);
+          if (context.mounted) {
+            context.read<IncidenteBloc>().add(IncidenteCargarMios(),);
+            context.read<NotificacionBloc>().add(NotificacionContarNoLeidas(),);
+          }
         }
       },
       child: Container(

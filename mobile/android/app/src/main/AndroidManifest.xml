@@ -10,7 +10,7 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
-        android:label="mobile"
+        android:label="Asistencia Vehicular"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
@@ -53,6 +53,9 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        
+        <package android:name="com.whatsapp"/>
+        <package android:name="com.whatsapp.w4b"/>
     </queries>
 
 </manifest>

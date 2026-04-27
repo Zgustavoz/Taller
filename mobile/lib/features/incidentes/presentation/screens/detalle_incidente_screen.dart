@@ -13,6 +13,7 @@ import '../../domain/entities/incidente_entity.dart';
 import '../../data/models/taller_cercano_model.dart';
 import '../widgets/detalle/cards_detalle.dart';
 import '../widgets/shared/widgets_compartidos.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DetalleIncidenteScreen extends StatelessWidget {
   final int incidenteId;
@@ -63,49 +64,93 @@ class _DetalleViewState extends State<_DetalleView> {
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        context.go('/home');
+        context.pop('/home');
         return false;
       },
       child: Scaffold(
         backgroundColor: AppTheme.background,
-        body: BlocBuilder<IncidenteBloc, IncidenteState>(
+      body: BlocListener<IncidenteBloc, IncidenteState>(
+        listener: (context, state) {
+          if (state is IncidenteCanceladoExito) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('✅ Incidente cancelado'),
+                backgroundColor: Colors.orange.shade600,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            );
+            context.go('/home');
+          }
+
+          if (state is IncidenteError) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(state.mensaje),
+                backgroundColor: AppTheme.error,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
+        },
+        child: BlocBuilder<IncidenteBloc, IncidenteState>(
           builder: (context, state) {
             if (state is IncidenteLoading) {
               return const Center(
-                  child: CircularProgressIndicator(color: AppTheme.accent));
+                child: CircularProgressIndicator(
+                  color: AppTheme.accent,
+                ),
+              );
             }
+
             if (state is IncidenteDetalleCargado) {
-              // Actualizar el último estado conocido
               _ultimoEstado = state.incidente.estado;
+
               return _DetalleContenido(
                 incidente: state.incidente,
                 talleresCercanos: state.talleresCercanos,
               );
             }
+
             if (state is IncidenteError) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.error_outline_rounded,
-                        size: 56, color: Colors.grey),
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      size: 56,
+                      color: Colors.grey,
+                    ),
                     const SizedBox(height: 16),
-                    Text(state.mensaje,
-                        style: TextStyle(color: Colors.grey.shade600)),
+                    Text(
+                      state.mensaje,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     ElevatedButton(
                       onPressed: () => context
                           .read<IncidenteBloc>()
-                          .add(IncidenteCargarDetalle(widget.incidenteId)),
+                          .add(
+                            IncidenteCargarDetalle(
+                              widget.incidenteId,
+                            ),
+                          ),
                       child: const Text('Reintentar'),
                     ),
                   ],
                 ),
               );
             }
+
             return const SizedBox();
           },
         ),
+      ),
       ),
     );
   }
@@ -127,6 +172,55 @@ class _DetalleContenido extends StatelessWidget {
       case 'resuelto': return const Color(0xFF10B981);
       default: return Colors.grey;
     }
+  }
+
+  void _confirmarCancelar(BuildContext context) {
+    final motivoCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Cancelar emergencia'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+                '¿Estás seguro que deseas cancelar esta emergencia?'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: motivoCtrl,
+              decoration: const InputDecoration(
+                hintText: 'Motivo (opcional)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('No, mantener')),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.read<IncidenteBloc>().add(
+                    IncidenteCancelar(
+                      incidente.id,
+                      motivo: motivoCtrl.text.trim().isEmpty
+                          ? null
+                          : motivoCtrl.text.trim(),
+                    ),
+                  );
+            },
+            style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.error),
+            child: const Text('Sí, cancelar',
+                style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -303,8 +397,39 @@ class _DetalleContenido extends StatelessWidget {
                   )
                 else
                   ...talleresCercanos.map((t) => TallerCard(taller: t)),
-                const SizedBox(height: 8),
 
+                // Botón WhatsApp — solo si está asignado y hay taller
+                if ((incidente.estado == 'asignado' || incidente.estado == 'en_proceso') &&
+                    talleresCercanos.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      // Buscar el taller aceptado
+                      final tallerAceptado = talleresCercanos.firstWhere(
+                        (t) => t.id == incidente.tallerAsignadoId,
+                        orElse: () => talleresCercanos.first,
+                      );
+                      if (tallerAceptado.telefono != null) {
+                        _abrirWhatsApp(tallerAceptado.telefono!, context);
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('El taller no tiene número registrado')),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.chat_rounded, color: Colors.white),
+                    label: const Text('Contactar por WhatsApp',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF25D366), // verde WhatsApp
+                      minimumSize: const Size(double.infinity, 50),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 8),
+                
                 // Botón ver mapa
                 ElevatedButton.icon(
                   onPressed: () => context
@@ -401,6 +526,36 @@ class _DetalleContenido extends StatelessWidget {
                       color: Colors.grey.shade600),
                   const SizedBox(height: 8),
                   CardAsignaciones(asignaciones: incidente.asignaciones),
+
+                // ── Cancelar incidente ────────────────────────────────────────
+                if (['pendiente', 'analizando', 'notificando']
+                    .contains(incidente.estado)) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => _confirmarCancelar(context),
+                    icon: const Icon(Icons.cancel_rounded, color: Colors.red),
+                    label: const Text('Cancelar emergencia',
+                        style: TextStyle(color: Colors.red)),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.red),
+                      minimumSize: const Size(double.infinity, 48),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ],
+
+                // ── Calificar taller ──────────────────────────────────────────
+                if (incidente.estado == 'resuelto' &&
+                    incidente.tallerAsignadoId != null) ...[
+                  const SizedBox(height: 14),
+                  TituloSeccion(
+                      icono: Icons.star_rounded,
+                      titulo: 'Calificar el servicio',
+                      color: const Color(0xFFF59E0B)),
+                  const SizedBox(height: 8),
+                  CardCalificacion(incidenteId: incidente.id),
+                ],
                   const SizedBox(height: 30),
                 ],
               ],
@@ -418,6 +573,28 @@ class _DetalleContenido extends StatelessWidget {
     if (imgs.isNotEmpty) {
       bloc.add(IncidenteSubirArchivos(
           incidente.id, imgs.map((x) => File(x.path)).toList()));
+    }
+  }
+
+  Future<void> _abrirWhatsApp(String telefono, BuildContext context) async {
+    final numeroLimpio = telefono.replaceAll(RegExp(r'[^\d+]'), '');
+    // Si no tiene código de país, agregar Bolivia (+591)
+    final numero = numeroLimpio.startsWith('+') ? numeroLimpio : '+591$numeroLimpio';
+    
+    final mensaje = Uri.encodeComponent(
+      '¡Hola! Te contacto por la emergencia vehicular que tienes asignada. ¿Puedes confirmar tu llegada?'
+    );
+    
+    final url = Uri.parse('https://wa.me/$numero?text=$mensaje');
+    
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    } else {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No se pudo abrir WhatsApp')),
+        );
+      }
     }
   }
 

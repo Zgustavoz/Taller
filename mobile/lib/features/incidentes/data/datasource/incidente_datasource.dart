@@ -162,4 +162,22 @@ class IncidenteDatasource {
         return 'Error inesperado: ${e.message}';
     }
   }
+
+  Future<void> cancelar(int id, {String? motivo}) async {
+    await _dio.patch('/incidentes/$id/cancelar',
+        data: {'motivo': motivo});
+  }
+
+  Future<Map<String, dynamic>> calificar(
+    int id, {
+    required int puntuacion,
+    String? comentario,
+  }) async {
+    final res = await _dio.post('/incidentes/$id/calificar', data: {
+      'puntuacion': puntuacion,
+      if (comentario != null) 'comentario': comentario,
+    });
+    return res.data;
+  }
+
 }

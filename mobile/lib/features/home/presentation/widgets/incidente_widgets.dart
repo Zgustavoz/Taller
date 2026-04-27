@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/features/incidentes/presentation/bloc/incidente_bloc.dart';
+import 'package:mobile/features/incidentes/presentation/bloc/incidente_event.dart';
+import 'package:mobile/features/notificaciones/presentation/bloc/notificacion_bloc.dart';
+import 'package:mobile/features/notificaciones/presentation/bloc/notificacion_event.dart';
 
 import '../../../../core/config/theme/app_theme.dart';
 
@@ -100,8 +105,13 @@ class EmergenciaActivaCard extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton(
-              onPressed: () =>
-                  context.push('/incidentes/${incidente.id}'),
+              onPressed: () async {
+                await context.push('/incidentes/${incidente.id}');
+                if (context.mounted) {
+                  context.read<IncidenteBloc>().add( IncidenteCargarMios(),);
+                  context.read<NotificacionBloc>().add(NotificacionContarNoLeidas(),);
+                }
+              },
               style: OutlinedButton.styleFrom(
                 foregroundColor: _color,
                 side: BorderSide(color: _color),
@@ -139,7 +149,13 @@ class IncidenteResumenCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = _color(incidente.estado);
     return GestureDetector(
-      onTap: () => context.push('/incidentes/${incidente.id}'),
+      onTap: () async {
+        await context.push('/incidentes/${incidente.id}');
+        if (context.mounted) { 
+          context.read<IncidenteBloc>().add( IncidenteCargarMios(),);
+          context.read<NotificacionBloc>().add(NotificacionContarNoLeidas(),);
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(14),

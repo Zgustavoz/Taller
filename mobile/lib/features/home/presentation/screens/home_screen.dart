@@ -16,16 +16,8 @@ class HomeScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
-        BlocProvider(
-          create: (_) =>
-              IncidenteBloc()
-                ..add(IncidenteCargarMios()),
-        ),
-        BlocProvider(
-          create: (_) =>
-              NotificacionBloc()
-                ..add(NotificacionContarNoLeidas()),
-        ),
+        BlocProvider( create: (_) => IncidenteBloc() ..add(IncidenteCargarMios()),),
+        BlocProvider( create: (_) => NotificacionBloc() ..add(NotificacionContarNoLeidas()),),
       ],
       child: const HomeView(),
     );

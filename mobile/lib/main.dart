@@ -15,7 +15,7 @@ import 'features/vehiculos/presentation/bloc/vehiculo_bloc.dart';
 import 'features/notificaciones/presentation/bloc/notificacion_bloc.dart';
 import 'features/notificaciones/presentation/bloc/notificacion_event.dart';
 
-
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');

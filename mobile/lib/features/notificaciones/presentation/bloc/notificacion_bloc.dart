@@ -44,7 +44,9 @@ class NotificacionBloc
       NotificacionMarcarLeida e, Emitter emit) async {
     try {
       await _repo.marcarLeida(e.id);
-      add(NotificacionCargar());
+      final notifs = await _repo.misNotificaciones();
+      final noLeidas = notifs.where((n) => !n.esLeida).length;
+      emit(NotificacionCargada(notifs, noLeidas: noLeidas));
     } catch (_) {}
   }
 

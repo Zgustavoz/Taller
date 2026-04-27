@@ -38,4 +38,11 @@ class IncidenteRepository {
   Future<List<MultimediaModel>> subirArchivos(int id, List<File> archivos) =>
       _ds.subirArchivos(id, archivos);
   Future<void> eliminarMultimedia(int id) => _ds.eliminarMultimedia(id);
+
+  Future<void> cancelar(int id, {String? motivo}) =>
+    _ds.cancelar(id, motivo: motivo);
+
+  Future<Map<String, dynamic>> calificar(int id,
+          {required int puntuacion, String? comentario}) =>
+      _ds.calificar(id, puntuacion: puntuacion, comentario: comentario);
 }

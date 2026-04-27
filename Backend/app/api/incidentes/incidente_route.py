@@ -4,6 +4,8 @@ from typing import List, Optional
 from app.core.db import get_db
 from app.core.security import get_current_user_from_cookie
 from app.services.incidentes.incidente_service import IncidenteService
+from pydantic import BaseModel
+from typing import Optional
 
 router = APIRouter(prefix="/incidentes", tags=["Incidentes"])
 
@@ -147,3 +149,39 @@ async def historial_estados(
         }
         for h in historial
     ]
+
+class CancelarRequest(BaseModel):
+    motivo: Optional[str] = None
+
+class CalificarRequest(BaseModel):
+    puntuacion: int  # 1 a 5
+    comentario: Optional[str] = None
+
+# ── Cancelar incidente ─────────────────────────────────────────
+@router.patch("/{incidente_id}/cancelar")
+async def cancelar_incidente(
+    incidente_id: int,
+    data: CancelarRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    return await IncidenteService(db).cancelar(
+        incidente_id=incidente_id,
+        usuario_id=int(current_user["sub"]),
+        motivo=data.motivo,
+    )
+
+# ── Calificar taller del incidente ─────────────────────────────
+@router.post("/{incidente_id}/calificar")
+async def calificar_incidente(
+    incidente_id: int,
+    data: CalificarRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    return await IncidenteService(db).calificar(
+        incidente_id=incidente_id,
+        usuario_id=int(current_user["sub"]),
+        puntuacion=data.puntuacion,
+        comentario=data.comentario,
+    )
