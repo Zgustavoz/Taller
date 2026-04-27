@@ -2,6 +2,7 @@ import firebase_admin
 from firebase_admin import credentials, messaging
 from app.core.config import settings
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 _inicializado = False
@@ -11,7 +12,9 @@ def inicializar_firebase():
     global _inicializado
     if not _inicializado:
         try:
-            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+            # cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
+            cred_dict = json.loads(settings.FIREBASE_CREDENTIALS_PATH)
+            cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
             _inicializado = True
             logger.info("✅ Firebase inicializado")
