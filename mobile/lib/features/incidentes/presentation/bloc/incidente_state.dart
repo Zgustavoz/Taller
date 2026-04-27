@@ -55,3 +55,11 @@ class IncidenteError extends IncidenteState {
   @override
   List<Object?> get props => [mensaje];
 }
+
+class IncidenteCanceladoExito extends IncidenteState {}
+class IncidenteCalificadoExito extends IncidenteState {
+  final double nuevoPromedio;
+  const IncidenteCalificadoExito(this.nuevoPromedio);
+  @override
+  List<Object?> get props => [nuevoPromedio];
+}

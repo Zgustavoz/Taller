@@ -170,7 +170,7 @@ class _VehiculoCard extends StatelessWidget {
                         fit: BoxFit.cover,
 
                         // 👇 importante para errores
-                        errorBuilder: (_, __, ___) {
+                        errorBuilder: (_, _, _) {
                           return Icon(
                             _iconTipo(vehiculo.tipo),
                             color: AppTheme.accent,

@@ -69,3 +69,20 @@ class IncidenteCargarTalleresCercanos extends IncidenteEvent {
   @override
   List<Object?> get props => [incidenteId];
 }
+
+class IncidenteCancelar extends IncidenteEvent {
+  final int incidenteId;
+  final String? motivo;
+  const IncidenteCancelar(this.incidenteId, {this.motivo});
+  @override
+  List<Object?> get props => [incidenteId];
+}
+
+class IncidenteCalificar extends IncidenteEvent {
+  final int incidenteId;
+  final int puntuacion;
+  final String? comentario;
+  const IncidenteCalificar(this.incidenteId, this.puntuacion, {this.comentario});
+  @override
+  List<Object?> get props => [incidenteId, puntuacion];
+}

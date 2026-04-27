@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart' hide Badge;
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile/core/config/theme/app_theme.dart';
 import 'package:mobile/features/incidentes/data/models/taller_cercano_model.dart';
 import 'package:mobile/features/incidentes/domain/entities/incidente_entity.dart';
+import 'package:mobile/features/incidentes/presentation/bloc/incidente_bloc.dart';
+import 'package:mobile/features/incidentes/presentation/bloc/incidente_event.dart';
+import 'package:mobile/features/incidentes/presentation/bloc/incidente_state.dart';
 import 'package:mobile/features/incidentes/presentation/widgets/shared/widgets_compartidos.dart';
 
 
@@ -397,5 +401,195 @@ class TallerCard extends StatelessWidget {
         ),
       ]),
     );
+  }
+}
+
+class CardCalificacion extends StatefulWidget {
+  final int incidenteId;
+  const CardCalificacion({super.key, required this.incidenteId});
+
+  @override
+  State<CardCalificacion> createState() => _CardCalificacionState();
+}
+
+class _CardCalificacionState extends State<CardCalificacion> {
+  int _estrellasSeleccionadas = 0;
+  final _comentarioCtrl = TextEditingController();
+  bool _yaCalificado = false;
+
+  @override
+  void dispose() {
+    _comentarioCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<IncidenteBloc, IncidenteState>(
+      listener: (context, state) {
+        if (state is IncidenteCalificadoExito) {
+          setState(() => _yaCalificado = true);
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(
+                '⭐ Calificación enviada. Nuevo promedio del taller: ${state.nuevoPromedio.toStringAsFixed(1)}'),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
+          ));
+        }
+        if (state is IncidenteError) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(state.mensaje),
+            backgroundColor: AppTheme.error,
+            behavior: SnackBarBehavior.floating,
+          ));
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2))
+          ],
+        ),
+        child: _yaCalificado
+            ? const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.check_circle_rounded,
+                      color: Color(0xFF10B981)),
+                  SizedBox(width: 8),
+                  Text('¡Gracias por tu calificación!',
+                      style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF10B981))),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('¿Cómo fue el servicio?',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                          color: AppTheme.textPrimary)),
+                  const SizedBox(height: 12),
+
+                  // Estrellas
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) {
+                      final estrella = i + 1;
+                      return GestureDetector(
+                        onTap: () => setState(
+                            () => _estrellasSeleccionadas = estrella),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.all(4),
+                          child: Icon(
+                            estrella <= _estrellasSeleccionadas
+                                ? Icons.star_rounded
+                                : Icons.star_outline_rounded,
+                            color: estrella <= _estrellasSeleccionadas
+                                ? const Color(0xFFF59E0B)
+                                : Colors.grey.shade300,
+                            size: 40,
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  if (_estrellasSeleccionadas > 0) ...[
+                    const SizedBox(height: 4),
+                    Center(
+                      child: Text(
+                        _textoEstrella(_estrellasSeleccionadas),
+                        style: TextStyle(
+                            color: _colorEstrella(_estrellasSeleccionadas),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _comentarioCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Comentario opcional...',
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide:
+                              BorderSide(color: Colors.grey.shade200),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    BlocBuilder<IncidenteBloc, IncidenteState>(
+                      builder: (context, state) {
+                        return ElevatedButton(
+                          onPressed: state is IncidenteLoading
+                              ? null
+                              : () {
+                                  context.read<IncidenteBloc>().add(
+                                        IncidenteCalificar(
+                                          widget.incidenteId,
+                                          _estrellasSeleccionadas,
+                                          comentario: _comentarioCtrl
+                                                  .text.trim().isEmpty
+                                              ? null
+                                              : _comentarioCtrl.text.trim(),
+                                        ),
+                                      );
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFF59E0B),
+                            minimumSize: const Size(double.infinity, 46),
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: state is IncidenteLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2))
+                              : const Text('Enviar calificación',
+                                  style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                        );
+                      },
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+
+  String _textoEstrella(int n) {
+    switch (n) {
+      case 1: return 'Muy malo 😞';
+      case 2: return 'Malo 😕';
+      case 3: return 'Regular 😐';
+      case 4: return 'Bueno 😊';
+      case 5: return 'Excelente 🌟';
+      default: return '';
+    }
+  }
+
+  Color _colorEstrella(int n) {
+    if (n <= 2) return AppTheme.error;
+    if (n == 3) return const Color(0xFFF59E0B);
+    return const Color(0xFF10B981);
   }
 }

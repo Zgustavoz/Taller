@@ -18,9 +18,9 @@ async def lifespan(app: FastAPI):
     # En producción usar Alembic
     async with engine.begin() as conn:
         # Requerido para la columna GEOMETRY(Point, 4326) de talleres.
-        await conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
+        # await conn.execute(text("CREATE EXTENSION IF NOT EXISTS postgis"))
         await conn.run_sync(Base.metadata.create_all)
-        await repair_schema(conn)
+        # await repair_schema(conn)
     inicializar_firebase()
     yield
     # Cerrar conexiones al apagar

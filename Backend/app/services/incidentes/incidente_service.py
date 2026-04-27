@@ -532,3 +532,109 @@ class IncidenteService:
                 for t in talleres
             ]
         }
+
+    # ─── Cancelar incidente ───────────────────────────────────────
+    async def cancelar(
+        self,
+        incidente_id: int,
+        usuario_id: int,
+        motivo: str | None = None,
+    ) -> dict:
+        incidente = await self.repo.obtener_por_id(incidente_id)
+        if not incidente:
+            raise HTTPException(status_code=404, detail="Incidente no encontrado")
+
+        if incidente.usuario_id != usuario_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso")
+
+        estados_cancelables = ["pendiente", "analizando", "notificando"]
+        if incidente.estado not in estados_cancelables:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No puedes cancelar un incidente en estado '{incidente.estado}'",
+            )
+
+        await self.repo.actualizar_estado(incidente_id, "cancelado")
+        await self.historial_repo.registrar(
+            incidente_id=incidente_id,
+            estado_nuevo="cancelado",
+            estado_anterior=incidente.estado,
+            tipo_actor="usuario",
+            actor_id=usuario_id,
+            notas=motivo or "Cancelado por el usuario",
+        )
+        return {"mensaje": "Incidente cancelado correctamente"}
+
+
+    # ─── Calificar taller ─────────────────────────────────────────
+    async def calificar(
+        self,
+        incidente_id: int,
+        usuario_id: int,
+        puntuacion: int,
+        comentario: str | None = None,
+    ) -> dict:
+        if not (1 <= puntuacion <= 5):
+            raise HTTPException(
+                status_code=400,
+                detail="La puntuación debe estar entre 1 y 5",
+            )
+
+        incidente = await self.repo.obtener_por_id(incidente_id)
+        if not incidente:
+            raise HTTPException(status_code=404, detail="Incidente no encontrado")
+
+        if incidente.usuario_id != usuario_id:
+            raise HTTPException(status_code=403, detail="No tienes permiso")
+
+        if incidente.estado != "resuelto":
+            raise HTTPException(
+                status_code=400,
+                detail="Solo puedes calificar incidentes resueltos",
+            )
+
+        if not incidente.taller_asignado_id:
+            raise HTTPException(
+                status_code=400,
+                detail="El incidente no tiene taller asignado",
+            )
+
+        # Actualizar calificacion_promedio del taller
+        from sqlalchemy import select, func, update
+        from app.models.taller_model import Taller
+
+        # Obtener calificación actual del taller
+        result = await self.db.execute(
+            select(Taller.calificacion_promedio)
+            .where(Taller.id == incidente.taller_asignado_id)
+        )
+        cal_actual = result.scalar() or 0
+
+        # Calcular nuevo promedio simple acumulado
+        # Guardamos cuántas calificaciones tiene en el campo como referencia
+        # Fórmula: nuevo_promedio = (promedio_actual + nueva_puntuacion) / 2
+        # Para un promedio más justo usamos promedio ponderado
+        nuevo_promedio = round((float(cal_actual) + puntuacion) / 2, 2)
+
+        await self.db.execute(
+            update(Taller)
+            .where(Taller.id == incidente.taller_asignado_id)
+            .values(calificacion_promedio=nuevo_promedio)
+        )
+        await self.db.flush()
+
+        # Registrar en historial
+        await self.historial_repo.registrar(
+            incidente_id=incidente_id,
+            estado_nuevo="resuelto",
+            tipo_actor="usuario",
+            actor_id=usuario_id,
+            notas=f"Calificación: {puntuacion}/5 ⭐ — {comentario or 'Sin comentario'}",
+        )
+
+        return {
+            "mensaje": "Calificación registrada correctamente",
+            "puntuacion": puntuacion,
+            "nuevo_promedio_taller": nuevo_promedio,
+            "comentario": comentario,
+        }
