@@ -410,10 +410,13 @@ class IncidenteService:
                 "taller_id": a["taller_id"],
                 "nombre_taller": a["nombre_negocio"],
                 "telefono_taller": a["telefono"],
+                "direccion_taller": a.get("direccion_taller"),
                 "especialidades": a["especialidades"],
                 "estado": a["estado_respuesta"],
                 "distancia_km": float(a["distancia_km"]) if a["distancia_km"] else None,
                 "puntuacion": float(a["puntuacion_asignacion"]) if a["puntuacion_asignacion"] else None,
+                "latitud_taller": float(a["latitud_taller"]) if a.get("latitud_taller") is not None else None,
+                "longitud_taller": float(a["longitud_taller"]) if a.get("longitud_taller") is not None else None,
             }
             for a in asignaciones
         ]
