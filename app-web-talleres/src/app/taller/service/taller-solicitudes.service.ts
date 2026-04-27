@@ -214,7 +214,7 @@ export class TallerSolicitudesService {
       url_almacenamiento: this.toStringOrDefault(raw['url_almacenamiento']),
       tipo_mime: this.toNullableString(raw['tipo_mime']),
       transcripcion: this.toNullableString(raw['transcripcion']),
-      resultado_ia: raw['resultado_ia'] ?? null,
+      resultado_ia: this.toObject(raw['resultado_ia']) ?? raw['resultado_ia'] ?? null,
     };
   }
 
@@ -225,6 +225,11 @@ export class TallerSolicitudesService {
       estado: this.toStringOrDefault(raw['estado']),
       distancia_km: this.toNullableNumber(raw['distancia_km']),
       puntuacion: this.toNullableNumber(raw['puntuacion']),
+      nombre_taller: this.toNullableString(raw['nombre_taller']),
+      telefono_taller: this.toNullableString(raw['telefono_taller']),
+      direccion_taller: this.toNullableString(raw['direccion_taller']),
+      latitud_taller: this.toNullableNumber(raw['latitud_taller']),
+      longitud_taller: this.toNullableNumber(raw['longitud_taller']),
     };
   }
 
@@ -260,7 +265,28 @@ export class TallerSolicitudesService {
     if (typeof value === 'object' && value !== null) {
       return value as Record<string, unknown>;
     }
+
+    if (typeof value === 'string') {
+      const parsed = this.parseJsonLike(value);
+      if (parsed && typeof parsed === 'object') {
+        return parsed as Record<string, unknown>;
+      }
+    }
+
     return null;
+  }
+
+  private parseJsonLike(value: string): unknown | null {
+    const text = value.trim();
+    if (!text.startsWith('{') && !text.startsWith('[')) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch {
+      return null;
+    }
   }
 
   private asRecord(value: unknown): Record<string, unknown> {

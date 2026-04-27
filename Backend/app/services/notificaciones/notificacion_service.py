@@ -1,8 +1,10 @@
 import json
 import logging
 from datetime import datetime, timezone
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.repositories.notificaciones.notificacion_repository import NotificacionRepository
+from app.repositories.gestion_usuario.usuario.usuario_repository import UsuarioRepository
 from app.services.notificaciones.firebase_service import enviar_a_token, enviar_a_multiples
 
 logger = logging.getLogger(__name__)
@@ -11,6 +13,7 @@ logger = logging.getLogger(__name__)
 class NotificacionService:
 
     def __init__(self, db: AsyncSession):
+        self.db = db
         self.repo = NotificacionRepository(db)
 
     # ─── Enviar a un usuario ──────────────────────────────────
@@ -132,6 +135,40 @@ class NotificacionService:
     async def contar_no_leidas(self, usuario_id: int) -> dict:
         total = await self.repo.contar_no_leidas("usuario", usuario_id)
         return {"total": total}
+
+    # ─── Enviar notificación de prueba al usuario autenticado ─────
+    async def enviar_prueba_usuario(
+        self,
+        usuario_id: int,
+        titulo: str,
+        cuerpo: str,
+    ) -> dict:
+        usuario = await UsuarioRepository(self.db).obtener_por_id(usuario_id)
+        if not usuario:
+            raise HTTPException(status_code=404, detail="Usuario no encontrado")
+
+        token = getattr(usuario, "token_fcm", None)
+        exito = await self.enviar_a_usuario(
+            usuario_id=usuario_id,
+            titulo=titulo,
+            cuerpo=cuerpo,
+            token_fcm=token,
+            datos_extra={
+                "tipo": "test_push",
+                "pantalla": "notificaciones",
+            },
+        )
+
+        if not token:
+            return {
+                "enviado": False,
+                "mensaje": "Usuario sin token FCM registrado",
+            }
+
+        return {
+            "enviado": exito,
+            "mensaje": "Push de prueba enviado" if exito else "No se pudo enviar el push de prueba",
+        }
 
     def _serializar(self, n) -> dict:
         return {

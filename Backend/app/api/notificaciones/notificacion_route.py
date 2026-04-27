@@ -7,6 +7,20 @@ from app.services.notificaciones.notificacion_service import NotificacionService
 router = APIRouter(prefix="/notificaciones", tags=["Notificaciones"])
 
 
+@router.post("/test-push")
+async def test_push(
+    titulo: str = "🔔 Prueba de notificación",
+    cuerpo: str = "Este es un push de prueba para validar Firebase",
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user_from_cookie),
+):
+    return await NotificacionService(db).enviar_prueba_usuario(
+        usuario_id=int(current_user["sub"]),
+        titulo=titulo,
+        cuerpo=cuerpo,
+    )
+
+
 @router.get("/mis-notificaciones")
 async def mis_notificaciones(
     solo_no_leidas: bool = False,
